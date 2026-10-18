@@ -23,7 +23,7 @@ A referência central é o loop de TBH: Task Bar Hero descrito na Steam: combate
 4. **Progressão offline generosa, mas limitada.** A primeira ausência deve render um retorno perceptível. Definir teto (12 horas para o protótipo) e calcular recompensas a partir do último salvamento.
 5. **Itens que criam escolhas.** A raridade é um sinal, não o único critério; vida, dano, velocidade, efeito único e sets devem gerar escolhas de build.
 6. **Evitar bloqueios artificiais.** Se uma sessão não trouxer item útil, o jogador ainda consegue evoluir com XP, ouro e crafting simples.
-7. **HUD a serviço do mundo.** A cena 3D ocupa a tela. O HUD prioriza heróis/vida, sinergia, loot recente e controle do combate; inventário, composição detalhada e configurações ficam em painéis acessíveis.
+7. **HUD a serviço do mundo.** A cena 2D de combate ocupa a tela. O HUD prioriza heróis/vida, sinergia, loot recente e controle do combate; inventário, composição detalhada e configurações ficam em painéis acessíveis.
 
 ## Primeiros 15 minutos
 
