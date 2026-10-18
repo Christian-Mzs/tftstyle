@@ -128,7 +128,7 @@ try {
     $BrowserName = Split-Path $BrowserPath -Leaf
     $BrowserProfile = Join-Path $env:LOCALAPPDATA 'FrontierHeroes\BrowserProfile'
     New-Item -ItemType Directory -Path $BrowserProfile -Force | Out-Null
-    $BrowserArgs = '--user-data-dir="' + $BrowserProfile + '" --no-first-run --no-default-browser-check --disable-background-mode --disable-extensions --new-window --window-size=1120,700 --window-position=100,70 --app="' + $Url + '"'
+    $BrowserArgs = '--user-data-dir="' + $BrowserProfile + '" --no-first-run --no-default-browser-check --disable-background-mode --disable-extensions --new-window --window-size=1000,620 --window-position=100,70 --app="' + $Url + '"'
     Write-Host ''
     Write-Host "Servidor iniciado em $Url" -ForegroundColor Green
     Write-Host "Abrindo uma janela isolada usando $BrowserName." -ForegroundColor Cyan
