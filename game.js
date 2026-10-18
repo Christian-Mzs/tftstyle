@@ -1,7 +1,7 @@
 const $ = id => document.getElementById(id);
 const canvas = $('worldCanvas');
 const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-const STORE_KEY = 'frontier-heroes-save-v1';
+const STORE_KEY = 'frontier-heroes-save-v2';
 const clamp = (v,min,max) => Math.max(min,Math.min(max,v));
 const rand = (min,max) => min + Math.random()*(max-min);
 const troop = {
@@ -27,7 +27,26 @@ const heroRoster=[
  {id:'mira',name:'Mira',title:'Tecelã de Ruína',emoji:'☄️',troop:'missile',role:'Especialista',style:'ranged',hp:145,damage:24,rate:1.2,range:150,speed:2.0,armor:1},
  {id:'zara',name:'Zara',title:'Lança-tempestades',emoji:'⚡',troop:'missile',role:'Atacante',style:'ranged',hp:140,damage:30,rate:1.35,range:150,speed:2.15,armor:1}
 ];
-const initialParty=['bram','helga','orwen','lyra','aerin'];
+const tierVariants={
+ SSR:[
+  ['Astra','Vanguarda da Aurora'],['Varka','Quebra-fortalezas'],['Serena','Porta-estandarte solar'],['Draeg','Muralha de basalto'],['Eira','Médica da alvorada'],
+  ['Sylwen','Olho do horizonte'],['Talon','Lâmina do vendaval'],['Nym','Harmonista astral'],['Kestrel','Dançarino do eclipse'],['Riven','Falcão de prata'],
+  ['Oryn','Oráculo de obsidiana'],['Bront','Artífice do trovão'],['Isolde','Condutora de éter'],['Caelia','Tecelã de estrelas'],['Zyra','Lança-tempestades']
+ ],
+ UR:[
+  ['Valéria','Baluarte Celeste'],['Asha','Martelo do Juízo'],['Thalia','Estandarte Imortal'],['Korvan','Colosso Rúnico'],['Myrr','Mão da Fênix'],
+  ['Astrid','Rainha dos Ventos'],['Elandra','Lâmina da Meia-noite'],['Zephyra','Voz das Constelações'],['Kaine','Dança do Vazio'],['Solenne','Falcão Solar'],
+  ['Vael','Profeta das Cinzas'],['Ignis','Artilheiro Primordial'],['Nymera','Tecelã do Infinito'],['Maelis','Vórtice Arcano'],['Xandria','Tempestade Viva']
+ ]
+};
+heroRoster.forEach(h=>{h.rarity='SR';});
+const baseRoster=heroRoster.map(h=>({...h}));
+for(const rarity of ['SSR','UR']){
+ baseRoster.forEach((base,i)=>{
+  const [name,title]=tierVariants[rarity][i];
+  heroRoster.push({...base,id:base.id+'_'+rarity.toLowerCase(),name,title,rarity});
+ });
+}
 const enemyTypes=[
  {name:'Cão-de-brasa',troop:'air',role:'Assaltante',hp:92,damage:13,speed:2.45,range:46,rate:1.25,color:'#bd674d',kind:'hound'},
  {name:'Brutamonte de musgo',troop:'tank',role:'Bruto',hp:195,damage:17,speed:1.35,range:47,rate:1.7,color:'#72906b',kind:'brute'},
@@ -46,7 +65,7 @@ const gearPool=[
  {name:'Amuleto de Âmbar',slot:'relic',rarity:'Incomum',attackPct:.03,hpPct:.04,armor:0,setId:null,setName:''}
 ];
 const slotNames={weapon:'Arma',armor:'Armadura',relic:'Relíquia'};
-let gold=1250,wave=1,selectedSlot=0,partyIds=[...initialParty],items=[],equipment={},heroProgress={},tacticalCard=false,nextItemId=1,firstGearCollected=false,tutorialSeen=false;
+let gold=0,wave=1,selectedSlot=0,partyIds=['bram'],ownedHeroIds=['bram'],unlockedSlots=1,recruitCards=0,tavernUnlocked=false,inventoryUnlocked=false,recruitSinceSSR=0,recruitSinceUR=0,recruitCount=0,items=[],equipment={},heroProgress={},tacticalCard=false,nextItemId=1,firstGearCollected=false,firstRecruitDrop=false,tutorialSeen=false;
 let running=false,cleared=false,defeated=false,lastToast=0,elapsed=0,offlineEarned=0,offlineXpEarned=0,offlineGearEarned=0;
 let heroes=[],enemies=[],projectiles=[],effects=[],loot=[],stars=[],treeFar=[],treeNear=[],stones=[],fireflies=[];
 let viewW=window.innerWidth,viewH=window.innerHeight,lastFrame=0,uiTimer=0,saveTimer=0,worldScroll=0;
@@ -73,7 +92,8 @@ function getGearBonus(id){
 function heroDataAtLevel(id){
  const base=heroRoster.find(h=>h.id===id);if(!base)return null;
  const p=progressFor(id),g=getGearBonus(id),n=p.level-1;
- return {...base,level:p.level,xp:p.xp,nextXp:xpNeeded(p.level),hp:Math.round(base.hp*(1+n*.06)*(1+g.hpPct)),damage:Math.round(base.damage*(1+n*.045)*(1+g.attackPct)),armor:base.armor+Math.floor(n*.25)+g.armor};
+ const tier=base.rarity==='UR'?1.30:base.rarity==='SSR'?1.12:1;
+ return {...base,level:p.level,xp:p.xp,nextXp:xpNeeded(p.level),hp:Math.round(base.hp*tier*(1+n*.06)*(1+g.hpPct)),damage:Math.round(base.damage*tier*(1+n*.045)*(1+g.attackPct)),armor:base.armor+Math.floor(n*.25)+g.armor};
 }
 function compInfo(){
  const count={tank:0,air:0,missile:0};partyIds.forEach(id=>{const h=heroRoster.find(x=>x.id===id);if(h)count[h.troop]++;});
@@ -84,21 +104,26 @@ function compInfo(){
  return {count,bonus,label,short};
 }
 function saveGame(){
- try{localStorage.setItem(STORE_KEY,JSON.stringify({gold,wave,partyIds,items,equipment,heroProgress,tacticalCard,nextItemId,firstGearCollected,tutorialSeen,savedAt:Date.now()}));}catch(e){}
+ try{localStorage.setItem(STORE_KEY,JSON.stringify({gold,wave,partyIds,ownedHeroIds,unlockedSlots,recruitCards,tavernUnlocked,inventoryUnlocked,recruitSinceSSR,recruitSinceUR,recruitCount,items,equipment,heroProgress,tacticalCard,nextItemId,firstGearCollected,firstRecruitDrop,tutorialSeen,savedAt:Date.now()}));}catch(e){}
 }
 function loadGame(){
  try{
   const s=JSON.parse(localStorage.getItem(STORE_KEY)||'null');if(!s)return;
   if(Number.isFinite(s.gold))gold=Math.max(0,s.gold);
   if(Number.isFinite(s.wave))wave=Math.max(1,s.wave);
-  if(Array.isArray(s.partyIds)&&s.partyIds.length===5&&s.partyIds.every(id=>heroRoster.some(h=>h.id===id))&&new Set(s.partyIds).size===5)partyIds=[...s.partyIds];
+  if(Array.isArray(s.ownedHeroIds)){ownedHeroIds=[...new Set(s.ownedHeroIds.filter(id=>heroRoster.some(h=>h.id===id)))];if(!ownedHeroIds.includes('bram'))ownedHeroIds.unshift('bram');}
+  if(Number.isFinite(s.unlockedSlots))unlockedSlots=Math.max(1,Math.min(5,Math.floor(s.unlockedSlots)));
+  if(Array.isArray(s.partyIds)&&s.partyIds.length>=1&&s.partyIds.length<=5&&s.partyIds.every(id=>ownedHeroIds.includes(id))&&new Set(s.partyIds).size===s.partyIds.length)partyIds=[...s.partyIds];
+  if(partyIds.length>unlockedSlots)partyIds=partyIds.slice(0,unlockedSlots);
+  recruitCards=Math.max(0,Math.floor(Number(s.recruitCards)||0));tavernUnlocked=!!s.tavernUnlocked;inventoryUnlocked=!!s.inventoryUnlocked;
+  recruitSinceSSR=Math.max(0,Math.floor(Number(s.recruitSinceSSR)||0));recruitSinceUR=Math.max(0,Math.floor(Number(s.recruitSinceUR)||0));recruitCount=Math.max(0,Math.floor(Number(s.recruitCount)||0));
   if(Array.isArray(s.items))items=s.items.filter(it=>it&&it.id&&it.slot).slice(-60);
   if(s.equipment&&typeof s.equipment==='object')equipment=s.equipment;
   if(s.heroProgress&&typeof s.heroProgress==='object')heroProgress=s.heroProgress;
-  tacticalCard=!!s.tacticalCard;firstGearCollected=!!s.firstGearCollected;tutorialSeen=!!s.tutorialSeen;
+  tacticalCard=!!s.tacticalCard;firstGearCollected=!!s.firstGearCollected;firstRecruitDrop=!!s.firstRecruitDrop;tutorialSeen=!!s.tutorialSeen;
   nextItemId=Math.max(1,Number(s.nextItemId)||1,items.reduce((max,it)=>Math.max(max,Number(String(it.id).replace('item-',''))+1||1),1));
   const mins=Math.min(720,Math.max(0,(Date.now()-(s.savedAt||Date.now()))/60000));
-  if(mins>=2){offlineEarned=Math.floor(mins*(26+Math.min(20,wave*1.5)));gold+=offlineEarned;offlineXpEarned=Math.floor(mins*1.35);partyIds.forEach(id=>grantHeroXp(id,offlineXpEarned));offlineGearEarned=Math.min(12,Math.floor(mins/35));for(let i=0;i<offlineGearEarned;i++)items.push(makeItem());if(items.length>60)items=items.slice(-60);}
+  if(mins>=2){offlineEarned=Math.floor(mins*(26+Math.min(20,wave*1.5)));gold+=offlineEarned;offlineXpEarned=Math.floor(mins*1.35);partyIds.forEach(id=>grantHeroXp(id,offlineXpEarned));offlineGearEarned=inventoryUnlocked?Math.min(12,Math.floor(mins/35)):0;for(let i=0;i<offlineGearEarned;i++)items.push(makeItem());if(items.length>60)items=items.slice(-60);}
  }catch(e){console.warn('Save local inválido',e);}
 }
 function resize(){
@@ -264,6 +289,9 @@ function nearestAlive(list,from){
 function makeUnit(data,isEnemy,x,y){
  const scale=isEnemy?(data.boss?1.2:1):1;
  return {data,isEnemy,x,y,homeX:x,homeY:y,hp:data.hp,maxHp:data.hp,alive:true,deadTimer:0,cooldown:rand(.2,.9),attackAnim:0,animOffset:rand(0,6),moving:false,facing:isEnemy?-1:1,scale,homeLane:y};
+}
+function autoFillParty(){
+ while(partyIds.length<unlockedSlots){const next=ownedHeroIds.find(id=>!partyIds.includes(id));if(!next)break;partyIds.push(next);}
 }
 function resetPartyWorld(){
  heroes=partyIds.map((id,i)=>{
