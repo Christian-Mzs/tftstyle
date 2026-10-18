@@ -104,7 +104,7 @@ function compInfo(){
  return {count,bonus,label,short};
 }
 function saveGame(){
- try{localStorage.setItem(STORE_KEY,JSON.stringify({gold,wave,partyIds,ownedHeroIds,unlockedSlots,recruitCards,tavernUnlocked,inventoryUnlocked,recruitSinceSSR,recruitSinceUR,recruitCount,items,equipment,heroProgress,tacticalCard,nextItemId,firstGearCollected,firstRecruitDrop,tutorialSeen,savedAt:Date.now()}));}catch(e){}
+ try{localStorage.setItem(STORE_KEY,JSON.stringify({gold,wave,partyIds,ownedHeroIds,loot:loot.map(l=>({...l})),unlockedSlots,recruitCards,tavernUnlocked,inventoryUnlocked,recruitSinceSSR,recruitSinceUR,recruitCount,items,equipment,heroProgress,tacticalCard,nextItemId,firstGearCollected,firstRecruitDrop,tutorialSeen,savedAt:Date.now()}));}catch(e){}
 }
 function loadGame(){
  try{
@@ -115,6 +115,7 @@ function loadGame(){
   if(Number.isFinite(s.unlockedSlots))unlockedSlots=Math.max(1,Math.min(5,Math.floor(s.unlockedSlots)));
   if(Array.isArray(s.partyIds)&&s.partyIds.length>=1&&s.partyIds.length<=5&&s.partyIds.every(id=>ownedHeroIds.includes(id))&&new Set(s.partyIds).size===s.partyIds.length)partyIds=[...s.partyIds];
   if(partyIds.length>unlockedSlots)partyIds=partyIds.slice(0,unlockedSlots);
+  if(Array.isArray(s.loot))loot=s.loot.filter(l=>l&&['gold','gear','relic','cards'].includes(l.kind)).map(l=>({...l,created:elapsed}));
   recruitCards=Math.max(0,Math.floor(Number(s.recruitCards)||0));tavernUnlocked=!!s.tavernUnlocked;inventoryUnlocked=!!s.inventoryUnlocked;
   recruitSinceSSR=Math.max(0,Math.floor(Number(s.recruitSinceSSR)||0));recruitSinceUR=Math.max(0,Math.floor(Number(s.recruitSinceUR)||0));recruitCount=Math.max(0,Math.floor(Number(s.recruitCount)||0));
   if(Array.isArray(s.items))items=s.items.filter(it=>it&&it.id&&it.slot).slice(-60);
@@ -446,7 +447,7 @@ function onWaveClear(){
  else if(clearedWave===3)showToast('Nova vaga e equipamentos desbloqueados','Sua expedição pode receber um terceiro herói. Equipamentos também passam a cair.');
  else if(unlockedSlots>oldSlotLimit)showToast('Nova vaga de formação','Uma nova vaga foi liberada. Recrute ou equipe um herói da sua coleção.');
  else showToast('Horda eliminada','+'+fmt(reward)+' ouro · '+fmt(xp)+' XP por herói'+(levels?' · '+levels+' novo(s) nível(is)':'')+'.');
- $('pauseButton').textContent='▶ Retomar';$('nextWaveButton').disabled=false;
+ $('pauseButton').textContent='▶ Retomar';$('nextWaveButton').disabled=clearedWave===1&&ownedHeroIds.length<2;
  $('waveLabel').textContent='HORDA '+String(clearedWave).padStart(2,'0')+' · CONCLUÍDA';$('combatStatus').textContent='Área segura';
  $('combatMessage').textContent=clearedWave===1?'Taverna aberta. Recolha as cartas e recrute seu primeiro aliado.':'Recolha os cristais e prepare a próxima expedição.';$('statusDot').style.background='var(--gold)';
  wave=clearedWave+1;updateHud();renderPartyUI();updateComposition();updatePowerNote();updateTavernButton();renderTavern();updateMissionCopy();saveGame();
@@ -578,6 +579,7 @@ function pullRecruit(){
  if(rarity==='UR'){recruitSinceUR=0;recruitSinceSSR=0;}else{recruitSinceUR++;if(rarity==='SSR')recruitSinceSSR=0;else recruitSinceSSR++;}
  const joined=!running&&partyIds.length<unlockedSlots;
  if(joined){partyIds.push(hero.id);resetPartyWorld();}
+ if(cleared&&ownedHeroIds.length>=2)$('nextWaveButton').disabled=false;
  $('recruitReveal').innerHTML='<div class="revealCard '+hero.rarity.toLowerCase()+'"><div class="revealKicker">NOVO HERÓI RECRUTADO</div><div class="revealRarity">'+hero.rarity+'</div><div class="revealEmoji">'+hero.emoji+'</div><h3>'+hero.name+'</h3><p>'+hero.title+'</p><div class="revealMeta">'+troop[hero.troop].name+' · '+hero.role+'</div><div class="revealPower">'+(hero.rarity==='UR'?'POTENCIAL MÍTICO':hero.rarity==='SSR'?'POTENCIAL ÉPICO':'POTENCIAL DE ELITE')+'</div></div>';
  $('recruitButton').textContent='Recrutar outro · 5 cartas';
  renderTavern();renderRoster();updateHud();updateComposition();updateMissionCopy();updatePowerNote();saveGame();
