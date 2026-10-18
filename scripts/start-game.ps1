@@ -154,7 +154,6 @@ try {
         $LogText = Get-Content $StderrLog -Raw -ErrorAction SilentlyContinue
         if ($LogText) { Write-Host $LogText -ForegroundColor DarkRed }
     }
-    Read-Host 'Pressione Enter para fechar esta janela'
 } finally {
     if ($ServerProcess -and -not $ServerProcess.HasExited) {
         try {
