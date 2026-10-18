@@ -1,41 +1,54 @@
 # Frontier Heroes — protótipo 3D
 
-Protótipo de jogo de navegador para validar o núcleo de um RPG de grupo inspirado na progressão de TBH: Task Bar Hero, no loot de RPGs de ação e no sistema de composição de tropas de Last War. O campo de batalha é renderizado em 3D com Three.js; HTML/CSS são usados apenas para HUD e menus.
+Protótipo de jogo para navegador de um RPG de grupo com combate automático, loot e progressão contínua. A cena é renderizada em 3D com **Three.js**; **Vite** cuida do servidor de desenvolvimento e do build.
+
+## Rodar localmente
+
+É necessário ter Node.js instalado.
+
+```bash
+npm install
+npm run dev
+```
+
+O Vite mostrará um endereço local (normalmente `http://localhost:5173`). Abra-o num navegador com suporte a WebGL 2.
+
+Para validar a versão de produção:
+
+```bash
+npm run build
+npm run preview
+```
 
 ## O que já está no protótipo
 
-- Cena 3D com clareira de ruínas, círculo rúnico, árvores low-poly, iluminação, neblina e partículas ambientais.
-- Cinco heróis visíveis no cenário, com modelos geométricos estilizados, armas e silhuetas diferentes.
-- Inimigos no mundo, combate automático, movimento até os alvos, animação simples de ataque e barras de vida.
+- Clareira 3D com ruínas, círculo rúnico, árvores low-poly, iluminação, neblina e partículas ambientais.
+- Cinco heróis visíveis no cenário, com silhuetas e armas distintas.
+- Inimigos no mundo, combate automático, movimentação até os alvos, ataques, barras de vida e animação simples.
 - Projéteis, números de dano, partículas de impacto e cristais de loot clicáveis.
-- Elenco inicial de 15 heróis fictícios, com três afinidades de tropa. Cada afinidade inclui funções variadas.
-- Bônus de composição: 3 do mesmo tipo = +5%; 3+2 = +10%; 4+1 = +15%; 5 do mesmo tipo = +20%.
-- Ciclo de confrontos: Tanques vencem Mísseis, Mísseis vencem Aeronaves, Aeronaves vencem Tanques.
-- Carta Tática de teste como relíquia; quando encontrada, mantém o bônus de +20% numa composição 4+1.
-- Salvamento local no navegador e simulação de renda offline generosa, limitada a 12 horas.
-- Controles de câmera para orbitar e aproximar, elenco selecionável e ondas progressivas.
+- Elenco inicial de 15 heróis fictícios, distribuídos entre Tanques, Aeronaves e Mísseis. Cada categoria tem funções variadas.
+- Bônus progressivos de composição: 3 do mesmo tipo = +5%; 3+2 = +10%; 4+1 = +15%; 5 do mesmo tipo = +20%.
+- Ciclo de confronto: Tanques vencem Mísseis, Mísseis vencem Aeronaves, Aeronaves vencem Tanques.
+- Carta Tática de teste que mantém +20% numa composição 4+1 quando encontrada como relíquia.
+- Salvamento no navegador e renda offline simulada, generosa e limitada a 12 horas.
+- Câmera orbital e zoom, elenco selecionável e ondas progressivas.
 
 ## Como jogar
 
-1. Abra a página no navegador com WebGL 2 e conexão à internet (Three.js é importado via CDN).
-2. Clique em **Começar**.
-3. Observe a equipe lutar. Você pode pausar para trocar heróis pelo botão **Elenco**.
-4. Ao concluir uma horda, clique em **Próxima horda**.
-5. Clique nos cristais que aparecem no cenário para recolher ouro e equipamento.
+1. Clique em **Começar**.
+2. Observe a equipe lutar automaticamente.
+3. Pause a batalha para abrir **Elenco** e substituir heróis.
+4. Ao concluir uma horda, inicie a próxima.
+5. Clique nos cristais brilhantes que caem no cenário para recolher ouro e equipamento.
 
-Os dados de progressão são salvos no armazenamento local do navegador. Eles não sincronizam entre dispositivos ou navegadores.
+O progresso é salvo no armazenamento local deste navegador. Ainda não há conta, servidor ou sincronização entre dispositivos.
 
-## Publicação
+## Estado do protótipo
 
-O workflow `.github/workflows/deploy-pages.yml` tenta publicar a branch `main` no GitHub Pages. Caso o Pages ainda não esteja ativado na conta/repositório, verifique a aba **Actions** do GitHub e as configurações **Settings → Pages**.
+Os heróis e inimigos atuais são modelos low-poly procedurais feitos com geometria 3D, para validar câmera, movimento, combate e efeitos sem depender ainda de arte final. Os números de combate, loot e progressão são placeholders sujeitos a balanceamento.
 
-## Próximas etapas
+Próximas etapas: modelos e animações com rig real, inventário visual por herói, comparação de itens, sets completos, habilidades distintas, chefes e testes de balanceamento.
 
-- Melhorar modelos e animações; usar rigs e assets 3D reais quando a direção de arte for aprovada.
-- Inventário visual por herói, slots de equipamento, comparação de itens e conjuntos com bônus.
-- Habilidades individuais de cada personagem, cura e efeitos de controle com lógica de combate mais profunda.
-- Drops persistentes, baús, bosses, novas regiões e cálculo offline de inimigos/recompensas.
-- Equilibrar dano/vida e bônus de confronto por testes — valores atuais são placeholders.
-- Testes em navegadores e dispositivos diferentes.
+## Automação
 
-Este projeto é um primeiro protótipo jogável, não uma versão final. Os modelos atuais usam geometria low-poly procedimental para validar movimento, câmera, combate e composição sem depender ainda de assets de arte finais.
+O workflow em `.github/workflows/build.yml` instala as dependências e executa `npm run build` a cada alteração na branch `main`. O repositório permanece privado; o workflow valida o build, mas não publica um site público.
