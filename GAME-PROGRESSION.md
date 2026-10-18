@@ -1,12 +1,19 @@
 # Frontier Heroes — visão de progressão e experiência inicial
 
-**Status:** proposta de design v0.1, alinhada com o protótipo atual. Os números são hipóteses para playtest, não balanceamento final.
+**Status:** proposta de design v0.2. Direção visual atual: Canvas 2D com sprites pixelados, janela compacta e batalha lateral. Os números são hipóteses para playtest, não balanceamento final.
 
 ## Fantasia central
 
-Uma equipe de cinco heróis luta automaticamente em um mundo visível. O jogador pode acompanhar a ação, coletar drops, experimentar equipamentos e mudar a composição; também pode deixar o jogo numa janela pequena enquanto trabalha. Ao voltar, encontra progresso acumulado e decisões significativas — não só uma tela cheia de moedas.
+Uma equipe de cinco heróis luta automaticamente numa faixa lateral 2D com pixel art. A janela é compacta e leve, pensada para ficar aberta junto dos outros programas. O jogador pode acompanhar a ação, coletar drops, experimentar equipamentos e mudar a composição; também pode deixar o jogo numa janela pequena enquanto trabalha. Ao voltar, encontra progresso acumulado e decisões significativas — não só uma tela cheia de moedas.
 
 A referência central é o loop de TBH: Task Bar Hero descrito na Steam: combate automático contínuo, crescimento enquanto ausente, regiões, níveis, equipamento, classes, habilidades e builds. O nosso diferencial é o grupo de cinco heróis, as três afinidades de tropa, os confrontos cíclicos e as builds por herói.
+
+## Direção técnica e visual
+
+- Usar Canvas 2D e sprites pixelados na primeira versão, em vez de modelos 3D. A prioridade é baixo consumo de CPU/GPU, leitura clara mesmo em janela pequena e animação constante enquanto o jogador trabalha.
+- O cenário é uma faixa lateral com parallax simples, chão, silhuetas de floresta/ruínas e efeitos de combate. A equipe e os inimigos são desenhados em layers conforme a posição vertical, dando sensação de profundidade sem renderização 3D.
+- Janela de jogo independente, aproximadamente 1000 × 620 no lançador do Windows. O modo realmente encaixado na barra de tarefas, como TBH, exigiria depois empacotar a aplicação em Electron/Tauri/Win32; o protótipo atual não se integra à taskbar do Windows.
+- Renderizar a ~30 FPS com resolução interna reduzida e sem depender de WebGL. Não carregar assets pesados nem fontes externas para o loop central.
 
 ## Princípios de UX
 
