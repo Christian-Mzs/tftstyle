@@ -5,7 +5,7 @@ Protótipo de navegador de um RPG de grupo com combate automático, loot, conjun
 ## Iniciar no Windows
 
 1. Instale o [Node.js LTS](https://nodejs.org/) se ainda não estiver instalado.
-2. Baixe/clon​e este repositório no computador.
+2. Baixe/clone este repositório no computador.
 3. Dê dois cliques em `start-game.bat`.
 
 Na primeira execução, o lançador instala as dependências automaticamente. Depois ele inicia o Vite numa porta local e abre o jogo numa janela independente do Edge ou Chrome. **Feche a janela do jogo para o lançador encerrar o servidor** e limpar o perfil temporário do navegador. Não feche a janela preta do lançador enquanto estiver jogando.
