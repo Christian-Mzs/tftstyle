@@ -1,4 +1,4 @@
-name: Build Three.js game prototype
+name: Validate lightweight 2D RPG
 
 on:
   workflow_dispatch:
