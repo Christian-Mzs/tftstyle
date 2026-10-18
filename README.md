@@ -10,7 +10,7 @@ Protótipo de navegador de um RPG de grupo com combate automático, loot, conjun
 
 Na primeira execução, o lançador instala as dependências automaticamente. Depois ele inicia o Vite numa porta local e abre o jogo numa janela independente do Edge ou Chrome. **Feche a janela do jogo para o lançador encerrar o servidor** e limpar o perfil temporário do navegador. Não feche a janela preta do lançador enquanto estiver jogando.
 
-O lançador usa um perfil temporário separado do navegador normal, para poder identificar a janela do jogo e parar o servidor quando ela fechar. Se a porta 4173 já estiver ocupada, ele avisa sem encerrar o processo de outra aplicação.
+O lançador usa um perfil persistente separado do navegador normal, para poder identificar a janela do jogo e manter o progresso salvo entre sessões. Ao fechar a janela, o servidor é encerrado; o perfil de jogo permanece em `%LOCALAPPDATA%\\FrontierHeroes\\BrowserProfile`. Se a porta 4173 já estiver ocupada, ele avisa sem encerrar o processo de outra aplicação.
 
 ## Executar manualmente
 
