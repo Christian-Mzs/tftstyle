@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Lightweight 2D pixel-art auto-RPG prototype with team combat, loot and offline progression.",
+  "description": "Lightweight 2D pixel-art auto-RPG prototype with party combat, loot and offline progression.",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
