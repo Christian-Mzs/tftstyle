@@ -590,6 +590,71 @@ function replaceHero(id){
   resetPartyWorld();updateHud();saveGame();
   showToast('Equipe atualizada',heroRoster.find(h=>h.id===id).name+' entrou no espaço '+(selectedSlot+1)+'.');
 }
+function itemStatText(item){
+  const stats=[];
+  if(item.attackPct)stats.push('+'+Math.round(item.attackPct*100)+'% ataque');
+  if(item.hpPct)stats.push('+'+Math.round(item.hpPct*100)+'% vida');
+  if(item.armor)stats.push('+'+item.armor+' armadura');
+  return stats.length?stats.join(' · '):'Sem atributos adicionais';
+}
+function equippedOwner(itemId){
+  for(const heroId of Object.keys(equipment)){
+    const slots=equipment[heroId]||{};
+    for(const slot of Object.keys(slots)){if(slots[slot]===itemId)return heroId;}
+  }
+  return null;
+}
+function equipItem(itemId){
+  if(running){showToast('Combate em andamento','Pause a batalha para equipar itens.');return;}
+  const item=items.find(it=>it.id===itemId);if(!item||!item.slot)return;
+  const heroId=partyIds[selectedSlot];
+  if(!heroId)return;
+  const current=equipment[heroId]||{};
+  if(current[item.slot]===item.id){showToast('Item já equipado','Esta peça já está no espaço correto.');return;}
+  for(const otherHero of Object.keys(equipment)){
+    const slots=equipment[otherHero]||{};
+    for(const slot of Object.keys(slots)){if(slots[slot]===item.id)delete slots[slot];}
+  }
+  if(!equipment[heroId])equipment[heroId]={};
+  equipment[heroId][item.slot]=item.id;
+  resetPartyWorld();updateHud();saveGame();renderInventory();
+  showToast('Equipamento aplicado',item.name+' foi equipado em '+heroRoster.find(h=>h.id===heroId).name+'.');
+}
+function renderInventory(){
+  const heroId=partyIds[selectedSlot],hero=heroRoster.find(h=>h.id===heroId);
+  if(!hero)return;
+  $('inventoryTargetTitle').textContent='Equipando: '+hero.name+' · '+hero.role+' · nível '+progressFor(heroId).level;
+  $('inventoryTargets').innerHTML=partyIds.map((id,i)=>{
+    const h=heroRoster.find(x=>x.id===id);
+    return '<button class="'+(i===selectedSlot?'active':'')+'" data-gear-target="'+i+'">'+h.emoji+' '+h.name+'</button>';
+  }).join('');
+  $('inventoryTargets').querySelectorAll('[data-gear-target]').forEach(b=>b.addEventListener('click',()=>{
+    selectedSlot=Number(b.dataset.gearTarget);renderPartyUI();renderInventory();
+  }));
+  const slots=equipment[heroId]||{};
+  $('equippedGrid').innerHTML=['weapon','armor','relic'].map(slot=>{
+    const item=items.find(it=>it.id===slots[slot]);
+    const rarityColor=item?({Comum:'#a0a99d',Incomum:'#66d2a0',Raro:'#80baff',Épico:'#c1a0ff',Lendário:'#ffcf75'}[item.rarity]||'#a0a99d'):'#718075';
+    return '<div class="equippedSlot"><label>'+slotNames[slot]+'</label><strong style="color:'+rarityColor+'">'+(item?item.name:'Espaço vazio')+'</strong><p>'+(item?itemStatText(item)+(item.setName?' · '+item.setName:''):'Encontre itens ao derrotar monstros.')+'</p></div>';
+  }).join('');
+  const setBonus=getGearBonus(heroId),setLines=[];
+  [['veilguard','Vigia do Véu','2 peças: +8% vida · 3 peças: +10% ataque'],['hunt','Caçador da Bruma','2 peças: +8% ataque'],['ash','Fornalha Antiga','2 peças: +10% vida']].forEach(entry=>{
+    const count=setBonus.sets[entry[0]]||0;
+    if(count>0)setLines.push(entry[1]+': '+count+'/3 peças — '+entry[2]);
+  });
+  $('inventorySetBonus').textContent=setLines.length?setLines.join(' | '):'Conjuntos: equipe duas ou três peças com o mesmo nome de conjunto para ativar bônus adicionais. As peças ainda podem ser usadas individualmente.';
+  const root=$('inventoryGrid');
+  const colors={Comum:'#a0a99d',Incomum:'#66d2a0',Raro:'#80baff',Épico:'#c1a0ff',Lendário:'#ffcf75'};
+  const sorted=[...items].sort((a,b)=>(b.foundAt||0)-(a.foundAt||0));
+  $('inventoryEmpty').hidden=sorted.length>0;
+  root.innerHTML=sorted.map(item=>{
+    const ownerId=equippedOwner(item.id),owner=ownerId?heroRoster.find(h=>h.id===ownerId):null;
+    const isEquippedHere=slots[item.slot]===item.id;
+    const color=colors[item.rarity]||'#a0a99d';
+    return '<article class="itemCard" style="border-left-color:'+color+'"><div class="itemMeta"><span class="itemRarity" style="color:'+color+'">'+item.rarity+'</span><span class="itemSlot">'+(slotNames[item.slot]||item.slot)+'</span></div><strong>'+item.name+'</strong><p>'+itemStatText(item)+'</p><small>'+(item.setName?'Conjunto: '+item.setName:'Item independente')+'</small><small>'+(isEquippedHere?'Equipado em '+hero.name:owner?'Equipado em '+owner.name:'Na bolsa')+'</small><button data-equip-item="'+item.id+'" '+(isEquippedHere||running?'disabled':'')+'>'+(isEquippedHere?'✓ Equipado aqui':owner?'Mover para '+hero.name:'Equipar em '+hero.name)+'</button></article>';
+  }).join('');
+  root.querySelectorAll('[data-equip-item]').forEach(b=>b.addEventListener('click',()=>equipItem(b.dataset.equipItem)));
+}
 function showToast(title,message){
   $('toastTitle').textContent=title;$('toastText').textContent=message;
   $('centerToast').classList.add('show');lastToast=3.2;
