@@ -112,7 +112,8 @@ try {
     }
 
     $BrowserName = Split-Path $BrowserPath -Leaf
-    $BrowserProfile = Join-Path $env:TEMP ('FrontierHeroesProfile-' + [Guid]::NewGuid().ToString('N'))
+    $BrowserProfile = Join-Path $env:LOCALAPPDATA 'FrontierHeroes\BrowserProfile'
+    New-Item -ItemType Directory -Path $BrowserProfile -Force | Out-Null
     $BrowserArgs = '--user-data-dir="' + $BrowserProfile + '" --no-first-run --no-default-browser-check --disable-background-mode --disable-extensions --new-window --app="' + $Url + '"'
     Write-Host ''
     Write-Host "Servidor iniciado em $Url" -ForegroundColor Green
@@ -120,9 +121,9 @@ try {
     Write-Host 'Feche a janela do jogo para encerrar o servidor automaticamente.'
     $BrowserProcess = Start-Process -FilePath $BrowserPath -ArgumentList $BrowserArgs -PassThru
 
-    # The unique browser profile prevents reusing an existing session. Track all
-    # processes for that profile, so a short-lived launcher PID does not shut down
-    # the server while the app window is open.
+    # Use a dedicated persistent browser profile so local save data survives closing
+    # the game. Track all processes for that profile, so the server stays alive
+    # while the app window is open.
     $SeenBrowser = $false
     while ($true) {
         $BrowserInstances = Get-ProfileBrowserProcesses -ProfilePath $BrowserProfile -ProcessName $BrowserName
@@ -165,9 +166,6 @@ try {
             }
             Start-Sleep -Milliseconds 500
         } catch {}
-    }
-    if ($BrowserProfile -and (Test-Path -LiteralPath $BrowserProfile)) {
-        Remove-Item -LiteralPath $BrowserProfile -Recurse -Force -ErrorAction SilentlyContinue
     }
     if (-not $Failed) {
         Remove-Item -LiteralPath $StdoutLog, $StderrLog -Force -ErrorAction SilentlyContinue
