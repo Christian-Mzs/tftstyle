@@ -180,7 +180,7 @@ function makeHeroModel(data){
   // Every unit carries a distinctive piece of gear.
   if(data.style==='ranged' || data.style==='support'){
     const staff=mesh(new THREE.CylinderGeometry(.035,.055,.94,6),trim,rightArm,[.03,-.06,.28]);staff.rotation.x=.18;
-    const orb=mesh(new THREE.OctahedronGeometry(data.aoe?.19:.12),mat(data.troop==='missile'?0xf3ae70:data.troop==='air'?0xb6a0ff:0xa1d6c2,.25,.15,{emissive:data.troop==='missile'?0x8c3b12:0x3b2c88,emissiveIntensity:1.5}),rightArm,[.03,.39,.3]);
+    const orb=mesh(new THREE.OctahedronGeometry(data.aoe ? .19 : .12),mat(data.troop==='missile'?0xf3ae70:data.troop==='air'?0xb6a0ff:0xa1d6c2,.25,.15,{emissive:data.troop==='missile'?0x8c3b12:0x3b2c88,emissiveIntensity:1.5}),rightArm,[.03,.39,.3]);
     pointLight(data.troopColor||troopColor,.28,1.2,rightArm,[.03,.39,.3]);
     if(data.style==='ranged' && data.id!=='nyx'){
       const bow=mesh(new THREE.TorusGeometry(.31,.035,5,12,Math.PI),trim,leftArm,[-.08,.06,.23]);bow.rotation.z=Math.PI/2;
