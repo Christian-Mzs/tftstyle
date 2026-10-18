@@ -47,7 +47,7 @@ const gearPool=[
 ];
 const slotNames={weapon:'Arma',armor:'Armadura',relic:'Relíquia'};
 let gold=1250,wave=1,selectedSlot=0,partyIds=[...initialParty],items=[],equipment={},heroProgress={},tacticalCard=false,nextItemId=1,firstGearCollected=false,tutorialSeen=false;
-let running=true,cleared=false,defeated=false,lastToast=0,elapsed=0,offlineEarned=0,offlineXpEarned=0,offlineGearEarned=0;
+let running=false,cleared=false,defeated=false,lastToast=0,elapsed=0,offlineEarned=0,offlineXpEarned=0,offlineGearEarned=0;
 let heroes=[],enemies=[],projectiles=[],effects=[],loot=[],stars=[],treeFar=[],treeNear=[],stones=[],fireflies=[];
 let viewW=window.innerWidth,viewH=window.innerHeight,lastFrame=0,uiTimer=0,saveTimer=0,worldScroll=0;
 let lastToastMsg='',firstBossDrop=false;
@@ -169,7 +169,7 @@ function drawHero(u,t){
  ctx.save();ctx.globalAlpha=u.alive?1:Math.max(0,1-u.deadTimer*1.2);
  ctx.fillStyle='#10191a88';ctx.beginPath();ctx.ellipse(u.x,u.y+2,p*7,p*1.5,0,0,Math.PI*2);ctx.fill();
  ctx.translate(Math.round(u.x),Math.round(u.y));if(dir<0)ctx.scale(-1,1);
- const px=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x*p),Math.round(y*p),Math.max(1,Math.round(w*p)),Math.max(1,Math.round(h*p));};
+ const px=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x*p),Math.round(y*p),Math.max(1,Math.round(w*p)),Math.max(1,Math.round(h*p)));};
  const dark='#202a31',boots='#292e31',skin=u.data.troop==='missile'?'#c8b8d2':u.data.troop==='air'?'#e0c09c':'#c8bfa3',primary=troop[u.data.troop].color,shadow=troop[u.data.troop].dark,trim='#e1c47e';
  const walk=u.alive&&u.moving?Math.sin(t*11+u.animOffset)*1.1:0;
  // Legs and boots.
