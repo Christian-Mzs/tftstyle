@@ -32,7 +32,7 @@ const enemyTypes = [
  {name:'Batedor corrompido',troop:'air',role:'assaltante',hp:105,damage:15,speed:2.2,range:1.4,rate:1.15,color:0x9f6d49,kind:'scout'},
  {name:'Cavaleiro vazio',troop:'tank',role:'guardião',hp:225,damage:21,speed:1.4,range:1.7,rate:1.55,color:0x657c8c,kind:'knight'}
 ];
-const initialParty = ['bram','helga','orwen','lyra','nyx'];
+const initialParty = ['bram','helga','orwen','lyra','aerin'];
 const STORE_KEY = 'frontier-heroes-save-v1';
 let gold = 1250, wave = 1, selectedSlot = 0, partyIds = [...initialParty], items = [], tacticalCard = false;
 let running = false, cleared = false, lastToast = 0, elapsed = 0, offlineEarned = 0;
@@ -295,19 +295,18 @@ function spawnWave(){
   showToast('Em combate', 'A horda '+String(wave).padStart(2,'0')+' se aproxima.');
   renderPartyUI();saveGame();
 }
-function buildProjectile(start,target,color,damage,aoe,enemy){
+function buildProjectile(start,target,color,damage,aoe,troopType,enemy){
   const geo=aoe?new THREE.IcosahedronGeometry(.16,1):new THREE.SphereGeometry(.105,8,6);
   const material=mat(color,.28,.1,{emissive:color,emissiveIntensity:1.8});
   const orb=mesh(geo,material,scene,[start.x,start.y,start.z]);
   const light=pointLight(color,.6,2.4,scene,[start.x,start.y,start.z]);
-  projectiles.push({mesh:orb,light,target,damage,aoe,enemy,color,speed:aoe?7.2:10,age:0});
+  projectiles.push({mesh:orb,light,target,damage,aoe,troopType,enemy,color,speed:aoe?7.2:10,age:0});
 }
 function spawnBurst(pos,color,count=12,power=1){
-  const group=new THREE.Group();group.position.copy(pos);scene.add(group);
   for(let i=0;i<count;i++){
-    const m=mesh(new THREE.IcosahedronGeometry(.035+Math.random()*.045,0),mat(color,.4,.1,{emissive:color,emissiveIntensity:1.3}),group,[0,0,0]);
+    const m=mesh(new THREE.IcosahedronGeometry(.035+Math.random()*.045,0),mat(color,.4,.1,{emissive:color,emissiveIntensity:1.3}),scene,[pos.x,pos.y,pos.z]);
     const dir=new THREE.Vector3(Math.random()-.5,Math.random()*.9,Math.random()-.5).normalize().multiplyScalar((.8+Math.random()*2)*power);
-    effects.push({kind:'particle',mesh:m,velocity:dir,life:.45+Math.random()*.5,age:0,group});
+    effects.push({kind:'particle',mesh:m,velocity:dir,life:.45+Math.random()*.5,age:0});
   }
   const ring=mesh(new THREE.TorusGeometry(.25,.025,5,24),mat(color,.35,.15,{emissive:color,emissiveIntensity:1}),scene,[pos.x,.12,pos.z]);ring.rotation.x=Math.PI/2;
   effects.push({kind:'ring',mesh:ring,life:.4,age:0,scale:1.8,origin:pos.clone()});
@@ -367,9 +366,9 @@ function attackUnit(attacker,target){
     if(ally){healUnit(ally,attacker.data.id==='maela'?28:attacker.data.id==='suri'?18:23);return;}
   }
   const damage=attacker.data.damage*(attacker.isEnemy?1:1);
-  if(attacker.data.style==='ranged'||attacker.isEnemy&&attacker.data.range>3){
+  if(attacker.data.style==='ranged'||attacker.data.style==='support'||(attacker.isEnemy&&attacker.data.range>3)){
     const p=attacker.root.position.clone().add(new THREE.Vector3(0,1.18,0));
-    buildProjectile(p,target,attacker.isEnemy?0xff956d:troop[attacker.data.troop].color,damage,!!attacker.data.aoe,attacker.isEnemy);
+    buildProjectile(p,target,attacker.isEnemy?0xff956d:troop[attacker.data.troop].color,damage,!!attacker.data.aoe,attacker.data.troop,attacker.isEnemy);
   }else{
     applyDamage(target,damage,attacker);
   }
@@ -383,8 +382,8 @@ function updateProjectiles(dt){
     if(d<p.speed*dt+.18){
       if(p.aoe){
         const squad=p.enemy?heroes:enemies;
-        squad.filter(u=>u.alive&&u.root.position.distanceTo(p.target.root.position)<2.1).forEach(u=>applyDamage(u,p.damage*.72,{data:{troop:p.enemy?'missile':'missile'}}));
-      }else applyDamage(p.target,p.damage,{data:{troop:p.enemy?'missile':p.color===0xe4a96e?'missile':p.color===0xb59be9?'air':'tank'}});
+        squad.filter(u=>u.alive&&u.root.position.distanceTo(p.target.root.position)<2.1).forEach(u=>applyDamage(u,p.damage*.72,{data:{troop:p.troopType}}));
+      }else applyDamage(p.target,p.damage,{data:{troop:p.troopType}});
       spawnBurst(dest,p.color,10,.75);scene.remove(p.mesh);scene.remove(p.light);projectiles.splice(i,1);
     }else{
       dir.normalize();p.mesh.position.addScaledVector(dir,p.speed*dt);p.mesh.rotation.x+=dt*7;p.mesh.rotation.z+=dt*5;p.light.position.copy(p.mesh.position);
@@ -423,6 +422,7 @@ function updateUnits(dt,time){
     }
     const ndx=target.root.position.x-u.root.position.x,ndz=target.root.position.z-u.root.position.z;
     u.root.rotation.y=Math.atan2(ndx,ndz);
+    u.bar.group.rotation.y=-u.root.rotation.y;
     const moving=canMove||(!u.isEnemy&&u.data.style==='support'&&dist>3.9);
     const stride=moving?Math.sin(u.walkPhase*5)*.58:0;
     u.leftLeg.rotation.x=stride;u.rightLeg.rotation.x=-stride;
