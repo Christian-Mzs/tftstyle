@@ -35,7 +35,8 @@ const enemyTypes = [
 const initialParty = ['bram','helga','orwen','lyra','aerin'];
 const STORE_KEY = 'frontier-heroes-save-v1';
 let gold = 1250, wave = 1, selectedSlot = 0, partyIds = [...initialParty], items = [], tacticalCard = false;
-let running = false, cleared = false, lastToast = 0, elapsed = 0, offlineEarned = 0;
+let equipment = {}, heroProgress = {}, nextItemId = 1, firstGearCollected = false, tutorialSeen = false;
+let running = false, cleared = false, lastToast = 0, elapsed = 0, offlineEarned = 0, offlineXpEarned = 0;
 let heroes = [], enemies = [], projectiles = [], effects = [], loot = [], allUnits = [];
 let clock = new THREE.Clock();
 const unitPositions = [[-4.4,-1.55],[-3.4,0.2],[-5.6,0.05],[-4.5,1.65],[-6.0,-2.05]];
@@ -51,8 +52,73 @@ function compInfo(){
   else if(values[0]===3){bonus=values[1]===2?10:5;label=values[1]===2?'3 + 2':'3 do mesmo tipo';short=values[1]===2?'formação mista':'especialização parcial';}
   return {count,bonus,label,short};
 }
+function progressFor(id){
+  if(!heroProgress[id]||typeof heroProgress[id]!=='object')heroProgress[id]={level:1,xp:0};
+  heroProgress[id].level=Math.max(1,Math.floor(heroProgress[id].level||1));
+  heroProgress[id].xp=Math.max(0,Math.floor(heroProgress[id].xp||0));
+  return heroProgress[id];
+}
+function xpNeeded(level){return 70+(Math.max(1,level)-1)*35;}
+function grantHeroXp(id,amount){
+  const p=progressFor(id);p.xp+=Math.max(0,Math.floor(amount));let levels=0;
+  while(p.xp>=xpNeeded(p.level)){p.xp-=xpNeeded(p.level);p.level++;levels++;}
+  return levels;
+}
+const gearPool=[
+  {name:'Lâmina do Vigia',slot:'weapon',rarity:'Raro',attackPct:.09,hpPct:0,armor:0,setId:'veilguard',setName:'Vigia do Véu'},
+  {name:'Couraça do Vigia',slot:'armor',rarity:'Raro',attackPct:0,hpPct:.10,armor:2,setId:'veilguard',setName:'Vigia do Véu'},
+  {name:'Medalhão do Vigia',slot:'relic',rarity:'Épico',attackPct:.03,hpPct:.04,armor:0,setId:'veilguard',setName:'Vigia do Véu'},
+  {name:'Arco da Caçada',slot:'weapon',rarity:'Épico',attackPct:.12,hpPct:0,armor:0,setId:'hunt',setName:'Caçador da Bruma'},
+  {name:'Passos da Caçada',slot:'armor',rarity:'Raro',attackPct:.04,hpPct:.03,armor:1,setId:'hunt',setName:'Caçador da Bruma'},
+  {name:'Broquel Rúnico',slot:'armor',rarity:'Raro',attackPct:0,hpPct:.07,armor:3,setId:null,setName:''},
+  {name:'Foco de Cinzas',slot:'relic',rarity:'Épico',attackPct:.08,hpPct:0,armor:0,setId:'ash',setName:'Fornalha Antiga'},
+  {name:'Amuleto de Âmbar',slot:'relic',rarity:'Incomum',attackPct:.03,hpPct:.04,armor:0,setId:null,setName:''}
+];
+const slotNames={weapon:'Arma',armor:'Armadura',relic:'Relíquia'};
+function makeItem(){
+  const eligible=wave<3?gearPool.filter(x=>x.setId==='veilguard'||x.setId===null):gearPool;
+  const base=eligible[Math.floor(Math.random()*eligible.length)];
+  const item={...base,id:'item-'+(nextItemId++),foundAt:Date.now()};
+  // Small rolls keep two items of the same family from being identical.
+  item.attackPct=Math.max(0,(item.attackPct||0)+(Math.random()*.02));
+  item.hpPct=Math.max(0,(item.hpPct||0)+(Math.random()*.02));
+  return item;
+}
+function getEquippedItems(heroId){
+  const slots=equipment[heroId]||{};
+  return Object.keys(slots).map(slot=>items.find(it=>it.id===slots[slot])).filter(Boolean);
+}
+function getGearBonus(heroId){
+  const gear=getEquippedItems(heroId);
+  let attackPct=0,hpPct=0,armor=0;const sets={};
+  gear.forEach(it=>{
+    attackPct+=it.attackPct||0;hpPct+=it.hpPct||0;armor+=it.armor||0;
+    if(it.setId)sets[it.setId]=(sets[it.setId]||0)+1;
+  });
+  if((sets.veilguard||0)>=2)hpPct+=.08;
+  if((sets.veilguard||0)>=3)attackPct+=.10;
+  if((sets.hunt||0)>=2)attackPct+=.08;
+  if((sets.ash||0)>=2)hpPct+=.10;
+  return {attackPct,hpPct,armor,sets,gear};
+}
+function heroDataAtLevel(id){
+  const base=heroRoster.find(h=>h.id===id);
+  if(!base)return null;
+  const p=progressFor(id),gear=getGearBonus(id),n=p.level-1;
+  return {...base,level:p.level,hp:Math.round(base.hp*(1+n*.06)*(1+gear.hpPct)),damage:Math.round(base.damage*(1+n*.045)*(1+gear.attackPct)),armor:base.armor+Math.floor(n*.25)+gear.armor};
+}
+function refreshHeroWorldStats(){
+  heroes.forEach(unit=>{
+    const currentRatio=unit.maxHp>0?unit.hp/unit.maxHp:1;
+    const newData=heroDataAtLevel(unit.data.id);if(!newData)return;
+    unit.data=newData;unit.maxHp=newData.hp;
+    unit.hp=Math.max(1,Math.min(newData.hp,newData.hp*currentRatio));
+    unit.bar.max=newData.hp;setHealthBar(unit);
+  });
+  renderPartyUI();updatePowerNote();
+}
 function saveGame(){
-  try{localStorage.setItem(STORE_KEY,JSON.stringify({gold,wave,partyIds,items,tacticalCard,savedAt:Date.now()}));}catch(e){}
+  try{localStorage.setItem(STORE_KEY,JSON.stringify({gold,wave,partyIds,items,equipment,heroProgress,tacticalCard,nextItemId,firstGearCollected,tutorialSeen,savedAt:Date.now()}));}catch(e){}
 }
 function loadGame(){
   try{
@@ -61,10 +127,18 @@ function loadGame(){
     if(Number.isFinite(s.gold))gold=Math.max(0,s.gold);
     if(Number.isFinite(s.wave))wave=Math.max(1,s.wave);
     if(Array.isArray(s.partyIds)&&s.partyIds.length===5&&s.partyIds.every(id=>heroRoster.some(h=>h.id===id))&&new Set(s.partyIds).size===5)partyIds=[...s.partyIds];
-    if(Array.isArray(s.items))items=s.items.slice(-30);
-    tacticalCard=!!s.tacticalCard;
+    if(Array.isArray(s.items))items=s.items.filter(it=>it&&it.id&&it.slot).slice(-60);
+    if(s.equipment&&typeof s.equipment==='object')equipment=s.equipment;
+    if(s.heroProgress&&typeof s.heroProgress==='object')heroProgress=s.heroProgress;
+    tacticalCard=!!s.tacticalCard;firstGearCollected=!!s.firstGearCollected;tutorialSeen=!!s.tutorialSeen;
+    nextItemId=Math.max(1,Number(s.nextItemId)||1,items.reduce((max,it)=>Math.max(max,Number(String(it.id).replace('item-',''))+1||1),1));
     const mins=Math.min(720,Math.max(0,(Date.now()-(s.savedAt||Date.now()))/60000));
-    if(mins>=2){offlineEarned=Math.floor(mins*26);gold+=offlineEarned;}
+    if(mins>=2){
+      offlineEarned=Math.floor(mins*(26+Math.min(20,wave*1.5)));
+      gold+=offlineEarned;
+      offlineXpEarned=Math.floor(mins*1.35);
+      partyIds.forEach(id=>grantHeroXp(id,offlineXpEarned));
+    }
   }catch(e){}
 }
 function mat(color,roughness=.7,metalness=.05,extra={}){return new THREE.MeshStandardMaterial({color,roughness,metalness,...extra});}
@@ -267,7 +341,7 @@ function makeUnit(data,enemy,pos){
 }
 function resetPartyWorld(){
   heroes.forEach(h=>scene.remove(h.root));heroes=[];
-  partyIds.forEach((id,i)=>{const d=heroRoster.find(h=>h.id===id);if(d)heroes.push(makeUnit(d,false,unitPositions[i]));});
+  partyIds.forEach((id,i)=>{const d=heroDataAtLevel(id);if(d)heroes.push(makeUnit(d,false,unitPositions[i]));});
   renderPartyUI();updateComposition();updatePowerNote();
 }
 function spawnWave(){
@@ -358,8 +432,9 @@ function killUnit(target){
   target.alive=false;target.deadTimer=.0;
   spawnBurst(target.root.position.clone().add(new THREE.Vector3(0,.6,0)),target.isEnemy?0xffa66e:0x9ddbbc,18,1);
   if(target.isEnemy){
-    if(Math.random()<.43)makeLoot(target.root.position,'gold');
-    if(Math.random()<.18)makeLoot(target.root.position,'gear');
+    if(!firstGearCollected&&!loot.some(l=>l.kind==='gear'))makeLoot(target.root.position,'gear');
+    else if(Math.random()<.43)makeLoot(target.root.position,'gold');
+    else if(Math.random()<.18)makeLoot(target.root.position,'gear');
   }
   saveGame();
 }
@@ -462,8 +537,13 @@ let environmentMotes=[];
 function onWaveClear(){
   if(cleared)return;
   cleared=true;running=false;
+  const clearedWave=wave;
   const aliveHeroes=heroes.filter(h=>h.alive).length;
   const reward=160+wave*48+aliveHeroes*14;gold+=reward;
+  const xpReward=24+clearedWave*8;
+  let levelsGained=0;
+  partyIds.forEach(id=>{levelsGained+=grantHeroXp(id,xpReward);});
+  refreshHeroWorldStats();
   if(wave%3===0){makeLoot(new THREE.Vector3(1.1,.1,-.5),'relic');}
   $('pauseButton').textContent='⚔ Recomeçar';
   $('nextWaveButton').disabled=false;
@@ -471,7 +551,7 @@ function onWaveClear(){
   $('combatStatus').textContent='Área segura';
   $('combatMessage').textContent='Horda eliminada. Clique nos cristais para recolher o loot.';
   $('statusDot').style.background='var(--gold)';
-  showToast('Horda eliminada','+'+fmt(reward)+' ouro · recolha os cristais espalhados pelo campo.');
+  showToast('Horda eliminada','+'+fmt(reward)+' ouro · +'+fmt(xpReward)+' XP por herói'+(levelsGained?' · '+levelsGained+' nível(is) conquistado(s)':''));
   wave++;updateHud();saveGame();
 }
 function updateHud(){
@@ -483,14 +563,14 @@ function updateComposition(){
   $('typeChips').innerHTML=['tank','air','missile'].map(k=>'<span class="chip"><span class="'+troop[k].css+'">'+troop[k].emoji+'</span> '+c.count[k]+' '+troop[k].name+'</span>').join('');
 }
 function updatePowerNote(){
-  const c=compInfo();const power=partyIds.reduce((s,id)=>s+(heroRoster.find(h=>h.id===id)?.damage||0),0)*(1+c.bonus/100);
+  const c=compInfo();const power=partyIds.reduce((s,id)=>s+(heroDataAtLevel(id)?.damage||0),0)*(1+c.bonus/100);
   $('combatMessage').textContent='Poder de ataque '+fmt(power)+'. '+c.label+' — os heróis mantêm funções variadas dentro da mesma tropa.';
 }
 function renderPartyUI(){
   const root=$('partyCards');
   root.innerHTML=partyIds.map((id,i)=>{
-    const h=heroRoster.find(x=>x.id===id);const unit=heroes[i];const ratio=unit?Math.max(0,unit.hp/unit.maxHp):1;
-    return '<button class="heroCard '+(selectedSlot===i?'active':'')+'" data-slot="'+i+'"><div class="cardTop"><span class="heroGlyph">'+h.emoji+'</span><span><strong>'+h.name+'</strong><small>'+h.role+'</small></span></div><div class="healthTrack"><div class="healthFill" style="width:'+(ratio*100)+'%"></div></div><div class="cardStats"><span class="affinity '+h.troop+'">'+troop[h.troop].name+'</span><span>'+Math.ceil(unit?.hp||h.hp)+' HP</span></div></button>';
+    const h=heroRoster.find(x=>x.id===id);const unit=heroes[i];const ratio=unit?Math.max(0,unit.hp/unit.maxHp):1;const p=progressFor(id);
+    return '<button class="heroCard '+(selectedSlot===i?'active':'')+'" data-slot="'+i+'"><div class="cardTop"><span class="heroGlyph">'+h.emoji+'</span><span><strong>'+h.name+'</strong><small>NV. '+p.level+' · '+h.role+'</small></span></div><div class="healthTrack"><div class="healthFill" style="width:'+(ratio*100)+'%"></div></div><div class="cardStats"><span class="affinity '+h.troop+'">'+troop[h.troop].name+'</span><span>'+Math.ceil(unit?.hp||heroDataAtLevel(id).hp)+' HP</span></div></button>';
   }).join('');
   root.querySelectorAll('[data-slot]').forEach(b=>b.addEventListener('click',()=>{selectedSlot=Number(b.dataset.slot);renderPartyUI();$('slotPrompt').textContent='Substituindo o espaço '+(selectedSlot+1)+'. Escolha um herói diferente.';}));
 }
@@ -516,13 +596,14 @@ function showToast(title,message){
 }
 function pickLoot(l){
   if(!l)return;
-  if(l.kind==='gold'){gold+=l.value;showToast('Ouro recolhido','+'+fmt(l.value)+' moedas adicionadas ao inventário.');}
-  else{
-    const gearNames=l.kind==='relic'?['Sigilo do Véu','Carta Tática Adaptável']:['Anel da Caçada','Couraça do Bastião','Marca da Vanguarda'];
-    const name=gearNames[Math.floor(Math.random()*gearNames.length)];
-    items.push({name,kind:l.kind,foundAt:Date.now()});if(items.length>30)items.shift();
-    if(name==='Carta Tática Adaptável'){tacticalCard=true;showToast('Relíquia encontrada','Carta Tática: 4 + 1 mantém o bônus de +20%.');updateComposition();}
-    else showToast('Equipamento encontrado',name+' foi guardado no inventário.');
+  if(l.kind==='gold'){
+    gold+=l.value;showToast('Ouro recolhido','+'+fmt(l.value)+' moedas adicionadas ao inventário.');
+  }else if(l.kind==='relic'&&!tacticalCard){
+    tacticalCard=true;showToast('Relíquia encontrada','Carta Tática: 4 + 1 mantém o bônus de +20%.');updateComposition();
+  }else{
+    const item=makeItem();items.push(item);if(items.length>60)items.shift();
+    if(!firstGearCollected)firstGearCollected=true;
+    showToast('Equipamento encontrado',item.name+' ('+item.rarity+') · '+slotNames[item.slot]+'. Abra Equipamentos para comparar e equipar.');
   }
   const idx=loot.indexOf(l);if(idx>=0)loot.splice(idx,1);
   scene.remove(l.group);lootTargets=loot.map(x=>x.crystal);
@@ -579,6 +660,12 @@ function animate(){
   renderer.render(scene,camera);
 }
 function wireUI(){
+  $('inventoryButton').addEventListener('click',()=>{
+    if(running){showToast('Combate em andamento','Pause a batalha para equipar itens.');return;}
+    renderInventory();$('inventoryOverlay').classList.add('open');
+  });
+  $('closeInventory').addEventListener('click',()=>$('inventoryOverlay').classList.remove('open'));
+  $('inventoryOverlay').addEventListener('click',e=>{if(e.target===$('inventoryOverlay'))$('inventoryOverlay').classList.remove('open');});
   $('pauseButton').addEventListener('click',()=>{
     if(running){running=false;$('pauseButton').textContent='▶ Retomar';$('combatStatus').textContent='Combate pausado';$('combatMessage').textContent='A equipe descansa enquanto a batalha está pausada.';$('waveLabel').textContent='HORDA '+String(wave).padStart(2,'0')+' · PAUSADA';}
     else if(cleared||!enemies.length){spawnWave();}
@@ -597,9 +684,14 @@ loadGame();
 if(offlineEarned>0)saveGame();
 try{
   initScene();wireUI();
-  if(offlineEarned>0){$('offlineValue').textContent='+'+fmt(offlineEarned);showToast('Você voltou à fronteira','Enquanto esteve fora, seus heróis acumularam '+fmt(offlineEarned)+' de ouro.');}
+  if(offlineEarned>0){$('offlineValue').textContent='+'+fmt(offlineEarned)+' / +'+fmt(offlineXpEarned)+' XP';showToast('Você voltou à fronteira','Seus heróis acumularam '+fmt(offlineEarned)+' ouro e '+fmt(offlineXpEarned)+' XP por herói.');}
   else $('offlineValue').textContent='ativo';
   updateHud();renderPartyUI();updateComposition();updatePowerNote();animate();
+  setTimeout(()=>{
+    if(!running&&!enemies.length)spawnWave();
+    if(!tutorialSeen){setTimeout(()=>showToast('Sua equipe luta sozinha','Observe a batalha, recolha cristais de loot e pause para trocar heróis ou equipar itens.'),1700);tutorialSeen=true;saveGame();}
+  },900);
+  window.addEventListener('beforeunload',saveGame);
 }catch(err){
   console.error(err);$('bootError').classList.add('visible');$('bootErrorText').textContent='Erro ao criar a cena 3D: '+(err?.message||String(err))+'. Verifique a conexão e o suporte a WebGL 2.';
 }
