@@ -1,6 +1,16 @@
 name: Validate lightweight 2D RPG
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build.yml'
+      - 'game.js'
+      - 'index.html'
+      - 'styles.css'
+      - 'package.json'
+      - 'vite.config.js'
+      - 'scripts/start-game.ps1'
   workflow_dispatch:
 
 permissions:
@@ -39,4 +49,3 @@ jobs:
             exit 1
           }
           Write-Host 'PowerShell launcher syntax is valid.'
-
