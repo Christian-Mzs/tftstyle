@@ -257,10 +257,12 @@ function drawLoot(t){
  loot.forEach(l=>{
   const bob=Math.sin(t*3+l.phase)*3,rot=Math.sin(t*2+l.phase)*3,x=Math.round(l.x),y=Math.round(l.y+bob);
   ctx.save();ctx.globalAlpha=.45+.25*(.5+.5*Math.sin(t*4+l.phase));ctx.fillStyle=l.color;ctx.beginPath();ctx.ellipse(x,y+10,12,4,0,0,Math.PI*2);ctx.fill();ctx.restore();
-  ctx.fillStyle='#11191d';ctx.fillRect(x-7+rot,y-9,14,15);
-  ctx.fillStyle=l.color;ctx.fillRect(x-5+rot,y-8,10,12);ctx.fillStyle='#fff0bd';ctx.fillRect(x-2+rot,y-6,4,5);
-  ctx.fillStyle='#f8e7b1';ctx.fillRect(x-1+rot,y+7,3,2);
-  if(t-l.created>1.5){ctx.fillStyle='#f3e4c0';ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillText('CLIQUE / +',x,y+26);}
+  if(l.kind==='cards'){
+   ctx.save();ctx.translate(x,y);ctx.rotate(rot*.035);ctx.fillStyle='#143138';ctx.fillRect(-9,-11,18,22);ctx.fillStyle='#79d5dc';ctx.fillRect(-7,-9,14,18);ctx.fillStyle='#f4e3a7';ctx.fillRect(-3,-5,6,7);ctx.fillRect(-2,-8,4,2);ctx.restore();
+  }else{
+   ctx.fillStyle='#11191d';ctx.fillRect(x-7+rot,y-9,14,15);ctx.fillStyle=l.color;ctx.fillRect(x-5+rot,y-8,10,12);ctx.fillStyle='#fff0bd';ctx.fillRect(x-2+rot,y-6,4,5);ctx.fillStyle='#f8e7b1';ctx.fillRect(x-1+rot,y+7,3,2);
+  }
+  if(t-l.created>1.5){ctx.fillStyle='#f3e4c0';ctx.font='bold 10px system-ui';ctx.textAlign='center';ctx.fillText(l.kind==='cards'?'CARTAS ×'+l.value:'CLIQUE / +',x,y+26);}
  });
 }
 function drawEffects(dt){
@@ -301,6 +303,7 @@ function resetPartyWorld(){
  renderPartyUI();updateComposition();updatePowerNote();
 }
 function spawnWave(retry=false){
+ autoFillParty();if(heroes.length!==partyIds.length)resetPartyWorld();
  heroes.forEach((h,i)=>{
   const ratio=retry ? 0.7 : Math.max(0.62,h.hp/h.maxHp);
   h.data=heroDataAtLevel(partyIds[i]);h.maxHp=h.data.hp;h.hp=h.maxHp*ratio;h.alive=true;h.deadTimer=0;
@@ -308,7 +311,7 @@ function spawnWave(retry=false){
  });
  enemies=[];projectiles=[];effects=[];
  cleared=false;defeated=false;running=true;
- const count=Math.min(wave%5===0?1:3+Math.floor((wave-1)*.55),7);
+ const count=wave===1?1:wave<=3?2:Math.min(wave%5===0?1:3+Math.floor((wave-1)*.42),7);
  for(let i=0;i<count;i++){
   let src=enemyTypes[(wave-1+i*2)%enemyTypes.length];
   const boss=wave%5===0;
@@ -320,8 +323,8 @@ function spawnWave(retry=false){
  $('pauseButton').textContent='Ⅱ Pausar';$('nextWaveButton').disabled=true;
  $('waveLabel').textContent='HORDA '+String(wave).padStart(2,'0')+' · EM COMBATE';
  $('zoneHint').textContent=wave%5===0?'ELITE DA FRONTEIRA':'CRIATURAS DA FRONTEIRA';
- $('combatStatus').textContent='Batalha automática';$('combatMessage').textContent='A equipe luta sozinha. Recolha o loot ou deixe a coleta automática agir.';$('statusDot').style.background='var(--mint)';
- renderPartyUI();updateHud();saveGame();
+ $('combatStatus').textContent='Batalha automática';$('combatMessage').textContent='Derrote a horda para ganhar ouro, experiência e novas oportunidades de recrutamento.';$('statusDot').style.background='var(--mint)';
+ renderPartyUI();updateHud();updateComposition();updateMissionCopy();saveGame();
  if(wave%5===0)showToast('Elite à vista!','Derrote o Guardião do Véu para obter uma relíquia.');
 }
 function effectiveMultiplier(attacker,target){
@@ -363,9 +366,9 @@ function killUnit(target){
  burst(target.x,target.y-14,target.isEnemy?'#ffd08b':'#9ee8ba',13,1);
  if(target.isEnemy){
   if(target.data.boss){makeLoot(target.x,target.y-10,'relic');firstBossDrop=true;}
-  else if(!firstGearCollected&&!loot.some(l=>l.kind==='gear'))makeLoot(target.x,target.y-10,'gear');
-  else if(Math.random()<.49)makeLoot(target.x,target.y-10,'gold');
-  else if(Math.random()<.19)makeLoot(target.x,target.y-10,'gear');
+  else if(!firstRecruitDrop){firstRecruitDrop=true;makeLoot(target.x,target.y-10,'cards',3);}
+  else if(wave>=3&&!firstGearCollected&&!loot.some(l=>l.kind==='gear'))makeLoot(target.x,target.y-10,'gear');
+  else {const roll=Math.random();if(roll<.25)makeLoot(target.x,target.y-10,'cards',1);else if(roll<.76)makeLoot(target.x,target.y-10,'gold');else if(wave>=3&&roll<.96)makeLoot(target.x,target.y-10,'gear');}
  }
  saveGame();
 }
@@ -412,35 +415,41 @@ function updateUnits(dt,t){
  if(running&&enemies.length>0&&enemies.every(e=>!e.alive))onWaveClear();
  if(running&&heroes.every(h=>!h.alive))onPartyDefeated();
 }
-function makeLoot(x,y,kind){
- const cols={gold:'#f0ce7a',gear:'#c9a5ff',relic:'#f8aa65'};
- loot.push({x,y,kind,color:cols[kind]||'#f0ce7a',created:elapsed,phase:rand(0,6.2),value:kind==='gold'?95+wave*19:0});
+function makeLoot(x,y,kind,value=0){
+ const cols={gold:'#f0ce7a',gear:'#c9a5ff',relic:'#f8aa65',cards:'#79d5dc'};
+ loot.push({x,y,kind,color:cols[kind]||'#f0ce7a',created:elapsed,phase:rand(0,6.2),value:kind==='gold'?95+wave*19:kind==='cards'?Math.max(1,value||1):0});
 }
 function pickLoot(l,automatic=false){
  if(!l)return;
  if(l.kind==='gold'){gold+=l.value;textFloat(l.x,l.y-15,'+'+fmt(l.value)+' ouro','#f5d37e');if(!automatic)showToast('Ouro recolhido','+'+fmt(l.value)+' moedas.');}
- else if(l.kind==='relic'&&!tacticalCard){
-  tacticalCard=true;showToast('Relíquia encontrada','Carta Tática: quatro heróis de um tipo e um de outro mantêm +20%.');updateComposition();
- }else{
-  const item=makeItem();items.push(item);if(items.length>60)items=items.slice(-60);firstGearCollected=true;
-  showToast('Equipamento encontrado',item.name+' · '+item.rarity+'. Abra Itens para equipar e comparar.');
-  renderInventory();
- }
- loot=loot.filter(x=>x!==l);updateHud();saveGame();
+ else if(l.kind==='cards'){recruitCards+=Math.max(1,l.value||1);textFloat(l.x,l.y-15,'+'+Math.max(1,l.value||1)+' cartas','#a8f1f2');if(!automatic)showToast('Cartas de recrutamento','+'+Math.max(1,l.value||1)+' cartas. Leve-as à Taverna para encontrar um aliado.');renderTavern();}
+ else if(l.kind==='relic'&&!tacticalCard){tacticalCard=true;showToast('Relíquia encontrada','Carta Tática: quatro heróis de um tipo e um de outro mantêm +20%.');updateComposition();}
+ else{const item=makeItem();items.push(item);if(items.length>60)items=items.slice(-60);firstGearCollected=true;showToast('Equipamento encontrado',item.name+' · '+item.rarity+'. Abra Itens para equipar e comparar.');renderInventory();}
+ loot=loot.filter(x=>x!==l);updateHud();updateMissionCopy();saveGame();
 }
 function onWaveClear(){
  if(cleared||defeated)return;
  cleared=true;running=false;
  const clearedWave=wave,alive=heroes.filter(h=>h.alive).length;
- const reward=140+wave*38+alive*14;gold+=reward;
+ const reward=140+clearedWave*38+alive*14;gold+=reward;
  const xp=25+clearedWave*10;let levels=0;partyIds.forEach(id=>{levels+=grantHeroXp(id,xp);});
  heroes.forEach((h,i)=>{const data=heroDataAtLevel(partyIds[i]),ratio=h.hp/h.maxHp;h.data=data;h.maxHp=data.hp;h.hp=Math.min(data.hp,data.hp*ratio);});
+ const oldSlotLimit=unlockedSlots;
+ if(clearedWave===1){tavernUnlocked=true;recruitCards+=2;unlockedSlots=Math.max(unlockedSlots,2);}
+ if(clearedWave>=3&&!inventoryUnlocked)inventoryUnlocked=true;
+ const slotLimit=clearedWave>=10?5:clearedWave>=6?4:clearedWave>=3?3:clearedWave>=1?2:1;
+ unlockedSlots=Math.max(unlockedSlots,slotLimit);
+ if(clearedWave>1&&clearedWave%2===0)recruitCards+=1;
+ autoFillParty();
  if(clearedWave%5===0){makeLoot(viewW*.52,viewH*.66,'relic');showToast('Chefe derrotado!','+'+fmt(reward)+' ouro · '+fmt(xp)+' XP por herói · relíquia garantida.');}
- else showToast('Horda eliminada','+'+fmt(reward)+' ouro · '+fmt(xp)+' XP para cada herói'+(levels?' · '+levels+' novo(s) nível(is)':'')+'.');
+ else if(clearedWave===1)showToast('Taverna da Fronteira desbloqueada','Você ganhou 2 cartas de missão. Recolha as 3 cartas que caíram para recrutar seu primeiro aliado.');
+ else if(clearedWave===3)showToast('Nova vaga e equipamentos desbloqueados','Sua expedição pode receber um terceiro herói. Equipamentos também passam a cair.');
+ else if(unlockedSlots>oldSlotLimit)showToast('Nova vaga de formação','Uma nova vaga foi liberada. Recrute ou equipe um herói da sua coleção.');
+ else showToast('Horda eliminada','+'+fmt(reward)+' ouro · '+fmt(xp)+' XP por herói'+(levels?' · '+levels+' novo(s) nível(is)':'')+'.');
  $('pauseButton').textContent='▶ Retomar';$('nextWaveButton').disabled=false;
  $('waveLabel').textContent='HORDA '+String(clearedWave).padStart(2,'0')+' · CONCLUÍDA';$('combatStatus').textContent='Área segura';
- $('combatMessage').textContent='Recolha os cristais e ajuste as builds antes da próxima horda.';$('statusDot').style.background='var(--gold)';
- wave=clearedWave+1;updateHud();renderPartyUI();updateComposition();saveGame();
+ $('combatMessage').textContent=clearedWave===1?'Taverna aberta. Recolha as cartas e recrute seu primeiro aliado.':'Recolha os cristais e prepare a próxima expedição.';$('statusDot').style.background='var(--gold)';
+ wave=clearedWave+1;updateHud();renderPartyUI();updateComposition();updatePowerNote();updateTavernButton();renderTavern();updateMissionCopy();saveGame();
 }
 function onPartyDefeated(){
  if(defeated)return;
@@ -452,11 +461,14 @@ function onPartyDefeated(){
 }
 function updateHud(){
  $('goldValue').textContent=fmt(gold);$('waveValue').textContent=String(wave).padStart(2,'0');
- $('teamCount').textContent='5 / 5 · escolha um herói para trocar';$('bagCount').textContent=String(items.length);
+ $('recruitCardsValue').textContent=String(recruitCards);$('recruitCardBadge').textContent=String(recruitCards);$('bagCount').textContent=String(items.length);
+ updateTavernButton();
+ $('rosterButton').disabled=ownedHeroIds.length<2;$('inventoryButton').disabled=!inventoryUnlocked;
+ $('teamCount').textContent=partyIds.length+' / '+unlockedSlots+' vagas abertas · '+ownedHeroIds.length+' recrutados';
 }
 function updateComposition(){
- const c=compInfo();$('bonusValue').textContent='+'+c.bonus+'%';
- $('bonusLabel').textContent=c.label+' · '+c.short;
+ const c=compInfo();$('bonusValue').textContent=partyIds.length<3?'—':'+'+c.bonus+'%';
+ $('bonusLabel').textContent=partyIds.length<2?'Recrute aliados para ativar sinergias':partyIds.length<3?'Sinergias completas com 3 heróis':c.label+' · '+c.short;
  $('typeChips').innerHTML=['tank','air','missile'].map(k=>'<span class="chip"><span class="'+troop[k].css+'">'+troop[k].emoji+'</span> '+c.count[k]+' '+troop[k].name+'</span>').join('');
 }
 function updatePowerNote(){
@@ -465,24 +477,35 @@ function updatePowerNote(){
 }
 function renderPartyUI(){
  const root=$('partyCards');
- root.innerHTML=partyIds.map((id,i)=>{
-  const h=heroRoster.find(x=>x.id===id),u=heroes[i],p=progressFor(id),ratio=u?Math.max(0,u.hp/u.maxHp):1;
-  return '<button class="heroCard '+(selectedSlot===i?'active':'')+'" data-slot="'+i+'"><div class="cardTop"><span class="heroGlyph">'+h.emoji+'</span><span><strong>'+h.name+'</strong><small>NV. '+p.level+' · '+h.role+'</small></span></div><div class="healthTrack"><div class="healthFill" style="width:'+(ratio*100)+'%"></div></div><div class="cardStats"><span class="affinity '+h.troop+'">'+troop[h.troop].name+'</span><span>'+Math.ceil(u?.hp||heroDataAtLevel(id).hp)+' HP</span></div></button>';
- }).join('');
- root.querySelectorAll('[data-slot]').forEach(b=>b.addEventListener('click',()=>{selectedSlot=Number(b.dataset.slot);renderPartyUI();$('slotPrompt').textContent='Escolha outro herói para substituir o espaço '+(selectedSlot+1)+'.';}));
+ const cards=Array.from({length:5},(_,i)=>{
+  const id=partyIds[i];
+  if(id){const h=heroRoster.find(x=>x.id===id),u=heroes[i],p=progressFor(id),ratio=u?Math.max(0,u.hp/u.maxHp):1;
+   return '<button class="heroCard '+(selectedSlot===i?'active':'')+'" data-slot="'+i+'"><div class="cardTop"><span class="heroGlyph">'+h.emoji+'</span><span><strong>'+h.name+'</strong><small>NV. '+p.level+' · '+h.rarity+' · '+h.role+'</small></span></div><div class="healthTrack"><div class="healthFill" style="width:'+(ratio*100)+'%"></div></div><div class="cardStats"><span class="affinity '+h.troop+'">'+troop[h.troop].name+'</span><span>'+Math.ceil(u?.hp||heroDataAtLevel(id).hp)+' HP</span></div></button>';
+  }
+  if(i<unlockedSlots)return '<button class="heroCard emptySlot '+(selectedSlot===i?'active':'')+'" data-empty-slot="'+i+'"><span class="emptyGlyph">＋</span><strong>Vaga livre</strong><small>Selecionar herói</small></button>';
+  const gate=i===1?1:i===2?3:i===3?6:10;
+  return '<div class="heroCard lockedSlot"><span class="emptyGlyph">🔒</span><strong>Vaga bloqueada</strong><small>Após a horda '+String(gate).padStart(2,'0')+'</small></div>';
+ });
+ root.innerHTML=cards.join('');
+ root.querySelectorAll('[data-slot]').forEach(b=>b.addEventListener('click',()=>{selectedSlot=Number(b.dataset.slot);renderPartyUI();$('slotPrompt').textContent='Escolha um aliado da sua coleção para substituir o espaço '+(selectedSlot+1)+'.';}));
+ root.querySelectorAll('[data-empty-slot]').forEach(b=>b.addEventListener('click',()=>{selectedSlot=Number(b.dataset.emptySlot);const reserve=ownedHeroIds.some(id=>!partyIds.includes(id));if(reserve){renderRoster();$('rosterOverlay').classList.add('open');}else if(tavernUnlocked){$('tavernOverlay').classList.add('open');renderTavern();showToast('Vaga livre','Recrute um herói na Taverna para preencher esta vaga.');}else showToast('Vaga livre','Conclua a primeira horda para desbloquear a Taverna.');}));
 }
 function renderRoster(){
- $('rosterGrid').innerHTML=heroRoster.map(h=>{
+ $('rosterGrid').innerHTML=ownedHeroIds.map(id=>{
+  const h=heroRoster.find(x=>x.id===id);if(!h)return '';
   const inTeam=partyIds.includes(h.id);
-  return '<button class="rosterPick" data-hero="'+h.id+'" '+(inTeam?'disabled':'')+'><span class="emoji">'+h.emoji+'</span><strong>'+h.name+'</strong><small class="'+h.troop+'">'+troop[h.troop].name+'</small><div class="role">'+h.role+' · '+h.style+'</div><div class="role">'+(inTeam?'Já está no grupo':'Escolher para espaço '+(selectedSlot+1))+'</div></button>';
+  return '<button class="rosterPick '+h.rarity.toLowerCase()+'" data-hero="'+h.id+'" '+(inTeam?'disabled':'')+'><span class="rarityTag">'+h.rarity+'</span><span class="emoji">'+h.emoji+'</span><strong>'+h.name+'</strong><small class="'+h.troop+'">'+troop[h.troop].name+'</small><div class="role">'+h.role+' · '+h.style+'</div><div class="role">'+(inTeam?'Já está na expedição':selectedSlot<partyIds.length?'Trocar espaço '+(selectedSlot+1):'Adicionar à expedição')+'</div></button>';
  }).join('');
  $('rosterGrid').querySelectorAll('[data-hero]').forEach(b=>b.addEventListener('click',()=>replaceHero(b.dataset.hero)));
 }
 function replaceHero(id){
  if(running){showToast('Pause a batalha','Pause antes de reorganizar a equipe.');return;}
- if(partyIds.includes(id))return;
- partyIds[selectedSlot]=id;$('rosterOverlay').classList.remove('open');
- resetPartyWorld();updateHud();saveGame();showToast('Equipe atualizada',heroRoster.find(h=>h.id===id).name+' entrou no grupo.');renderRoster();
+ if(!ownedHeroIds.includes(id)||partyIds.includes(id))return;
+ if(selectedSlot<partyIds.length)partyIds[selectedSlot]=id;
+ else if(selectedSlot===partyIds.length&&partyIds.length<unlockedSlots)partyIds.push(id);
+ else{showToast('Vaga indisponível','Desbloqueie uma vaga ou selecione um espaço livre.');return;}
+ $('rosterOverlay').classList.remove('open');
+ resetPartyWorld();updateHud();updateComposition();updatePowerNote();updateMissionCopy();saveGame();showToast('Expedição atualizada',heroRoster.find(h=>h.id===id).name+' entrou na equipe.');renderRoster();
 }
 function itemStatText(item){
  const a=[];if(item.attackPct)a.push('+'+Math.round(item.attackPct*100)+'% ataque');if(item.hpPct)a.push('+'+Math.round(item.hpPct*100)+'% vida');if(item.armor)a.push('+'+item.armor+' armadura');return a.length?a.join(' · '):'Sem atributos adicionais';
@@ -499,6 +522,7 @@ function equipItem(itemId){
  resetPartyWorld();updateHud();saveGame();renderInventory();showToast('Build atualizada',item.name+' equipado em '+heroRoster.find(h=>h.id===id).name+'.');
 }
 function renderInventory(){
+ if(selectedSlot>=partyIds.length)selectedSlot=Math.max(0,partyIds.length-1);
  const id=partyIds[selectedSlot],hero=heroRoster.find(h=>h.id===id);if(!hero)return;
  $('inventoryTargetTitle').textContent='Equipando: '+hero.name+' · '+hero.role+' · nível '+progressFor(id).level;
  $('inventoryTargets').innerHTML=partyIds.map((pid,i)=>{const h=heroRoster.find(x=>x.id===pid);return '<button class="'+(i===selectedSlot?'active':'')+'" data-target="'+i+'">'+h.emoji+' '+h.name+'</button>';}).join('');
@@ -520,6 +544,45 @@ function renderInventory(){
 function showToast(title,message){
  $('toastTitle').textContent=title;$('toastText').textContent=message;$('centerToast').classList.add('show');lastToast=3.3;lastToastMsg=title;
 }
+function updateMissionCopy(){
+ const title=$('missionTitle'),eyebrow=$('missionEyebrow'),copy=$('missionCopy'),objective=$('objectiveText');
+ if(!tavernUnlocked){eyebrow.textContent='CAPÍTULO 01 · A ÚLTIMA CHAMA';title.textContent='Bram, o último guardião';copy.textContent='Você começa sozinho. Derrote a primeira criatura para encontrar as cartas que vão abrir o caminho até a Taverna.';objective.textContent='OBJETIVO · DERROTE A PRIMEIRA CRIATURA E RECOLHA AS CARTAS';}
+ else if(ownedHeroIds.length<2){eyebrow.textContent='CAPÍTULO 01 · NOVOS ALIADOS';title.textContent='A Taverna da Fronteira';copy.textContent='A primeira horda caiu. Recolha cinco cartas de recrutamento e traga seu primeiro aliado para a expedição.';objective.textContent=recruitCards<5?'OBJETIVO · RECOLHA '+(5-recruitCards)+' CARTA(S) PARA RECRUTAR':'OBJETIVO · RECRUTE SEU PRIMEIRO ALIADO NA TAVERNA';}
+ else if(partyIds.length<unlockedSlots){eyebrow.textContent='CAPÍTULO 01 · REUNINDO A EXPEDIÇÃO';title.textContent='Uma equipe toma forma';copy.textContent='Você já tem novos aliados. Preencha as vagas livres e avance para abrir mais posições na formação.';objective.textContent='OBJETIVO · PREENCHA AS VAGAS DISPONÍVEIS OU AVANCE PARA A PRÓXIMA HORDA';}
+ else{eyebrow.textContent='ATO I · FRONTEIRA VELADA';title.textContent=wave<4?'Floresta dos Ecos':wave<8?'Ruínas do Véu':'Portão das Cinzas';copy.textContent='Derrote hordas, encontre cartas, recrute heróis e forme uma equipe que aproveite as sinergias de tropa.';objective.textContent='OBJETIVO · AVANCE PELAS HORDAS PARA DESBLOQUEAR NOVAS VAGAS';}
+}
+function updateTavernButton(){
+ $('tavernButton').hidden=!tavernUnlocked;$('rosterButton').hidden=!tavernUnlocked;$('inventoryButton').hidden=!inventoryUnlocked;
+ $('recruitCardBadge').textContent=String(recruitCards);
+}
+function renderTavern(){
+ if(!$('tavernOverlay'))return;
+ $('tavernCardsValue').textContent=recruitCards+' / 5';
+ $('recruitButton').disabled=!tavernUnlocked||recruitCards<5||ownedHeroIds.length>=heroRoster.length;
+ $('recruitStatus').textContent=ownedHeroIds.length>=heroRoster.length?'Coleção completa.':recruitCards<5?'Faltam '+(5-recruitCards)+' cartas para um recrutamento.':'Você tem cartas suficientes para recrutar.';
+ $('collectionCount').textContent=ownedHeroIds.length+' / '+heroRoster.length+' heróis';
+ $('pityText').textContent='Garantia SSR em '+Math.max(0,10-recruitSinceSSR)+' recrutamento(s) · garantia UR em '+Math.max(0,30-recruitSinceUR)+' recrutamento(s).';
+ $('tavernCollection').innerHTML=heroRoster.map(h=>{const owned=ownedHeroIds.includes(h.id);return '<div class="codexHero '+h.rarity.toLowerCase()+' '+(owned?'owned':'unknown')+'"><span class="codexTier">'+h.rarity+'</span><span class="codexIcon">'+(owned?h.emoji:'?')+'</span><strong>'+(owned?h.name:'Herói desconhecido')+'</strong><small>'+troop[h.troop].name+'</small></div>';}).join('');
+}
+function pullRecruit(){
+ if(!tavernUnlocked||recruitCards<5||ownedHeroIds.length>=heroRoster.length)return;
+ recruitCards-=5;recruitCount++;
+ const roll=Math.random();let rarity;
+ if(recruitSinceUR>=29)rarity='UR';
+ else if(recruitSinceSSR>=9)rarity='SSR';
+ else rarity=roll<.02?'UR':roll<.22?'SSR':'SR';
+ let candidates=heroRoster.filter(h=>h.rarity===rarity&&!ownedHeroIds.includes(h.id));
+ if(!candidates.length){candidates=heroRoster.filter(h=>!ownedHeroIds.includes(h.id));rarity=candidates[0]?.rarity||rarity;}
+ const hero=candidates[Math.floor(Math.random()*candidates.length)];if(!hero){updateHud();renderTavern();return;}
+ ownedHeroIds.push(hero.id);
+ if(rarity==='UR'){recruitSinceUR=0;recruitSinceSSR=0;}else{recruitSinceUR++;if(rarity==='SSR')recruitSinceSSR=0;else recruitSinceSSR++;}
+ const joined=!running&&partyIds.length<unlockedSlots;
+ if(joined){partyIds.push(hero.id);resetPartyWorld();}
+ $('recruitReveal').innerHTML='<div class="revealCard '+hero.rarity.toLowerCase()+'"><div class="revealKicker">NOVO HERÓI RECRUTADO</div><div class="revealRarity">'+hero.rarity+'</div><div class="revealEmoji">'+hero.emoji+'</div><h3>'+hero.name+'</h3><p>'+hero.title+'</p><div class="revealMeta">'+troop[hero.troop].name+' · '+hero.role+'</div><div class="revealPower">'+(hero.rarity==='UR'?'POTENCIAL MÍTICO':hero.rarity==='SSR'?'POTENCIAL ÉPICO':'POTENCIAL DE ELITE')+'</div></div>';
+ $('recruitButton').textContent='Recrutar outro · 5 cartas';
+ renderTavern();renderRoster();updateHud();updateComposition();updateMissionCopy();updatePowerNote();saveGame();
+ showToast('Novo herói recrutado',hero.name+' · '+hero.rarity+(joined?' entrou na expedição.':running?' ficará na reserva até a próxima horda.':' foi adicionado à coleção.'));
+}
 function onCanvasClick(e){
  const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
  let pick=null,best=Infinity;
@@ -530,6 +593,10 @@ function updateLoot(dt){
  for(let i=loot.length-1;i>=0;i--){const l=loot[i];if(elapsed-l.created>8)pickLoot(l,true);}
 }
 function wireUI(){
+ $('tavernButton').addEventListener('click',()=>{renderTavern();$('tavernOverlay').classList.add('open');});
+ $('closeTavern').addEventListener('click',()=>$('tavernOverlay').classList.remove('open'));
+ $('tavernOverlay').addEventListener('click',e=>{if(e.target===$('tavernOverlay'))$('tavernOverlay').classList.remove('open');});
+ $('recruitButton').addEventListener('click',pullRecruit);
  $('pauseButton').addEventListener('click',()=>{
   if(defeated){spawnWave(true);return;}
   if(running){running=false;$('pauseButton').textContent='▶ Retomar';$('combatStatus').textContent='Combate pausado';$('combatMessage').textContent='Equipe em pausa. Troque heróis ou equipe itens.';$('waveLabel').textContent='HORDA '+String(wave).padStart(2,'0')+' · PAUSADA';$('statusDot').style.background='var(--gold)';}
@@ -537,10 +604,10 @@ function wireUI(){
   else{running=true;$('pauseButton').textContent='Ⅱ Pausar';$('combatStatus').textContent='Batalha automática';$('statusDot').style.background='var(--mint)';}
  });
  $('nextWaveButton').addEventListener('click',()=>{if(cleared&&!defeated)spawnWave(false);});
- $('rosterButton').addEventListener('click',()=>{if(running){showToast('Pause a batalha','Pause para trocar os heróis.');return;}renderRoster();$('slotPrompt').textContent='Escolha o espaço '+(selectedSlot+1)+' e selecione um herói para substituí-lo.';$('rosterOverlay').classList.add('open');});
+ $('rosterButton').addEventListener('click',()=>{if(running){showToast('Pause a batalha','Pause para trocar os heróis.');return;}if(selectedSlot>partyIds.length-1)selectedSlot=Math.max(0,partyIds.length-1);renderRoster();$('slotPrompt').textContent=selectedSlot<partyIds.length?'Escolha um herói da coleção para substituir o espaço '+(selectedSlot+1)+'.':'Escolha um herói da coleção para preencher a vaga livre.';$('rosterOverlay').classList.add('open');});
  $('closeRoster').addEventListener('click',()=>$('rosterOverlay').classList.remove('open'));
  $('rosterOverlay').addEventListener('click',e=>{if(e.target===$('rosterOverlay'))$('rosterOverlay').classList.remove('open');});
- $('inventoryButton').addEventListener('click',()=>{if(running){showToast('Pause a batalha','Pause para comparar e equipar itens.');return;}renderInventory();$('inventoryOverlay').classList.add('open');});
+ $('inventoryButton').addEventListener('click',()=>{if(running){showToast('Pause a batalha','Pause para comparar e equipar itens.');return;}if(!inventoryUnlocked)return;renderInventory();$('inventoryOverlay').classList.add('open');});
  $('closeInventory').addEventListener('click',()=>$('inventoryOverlay').classList.remove('open'));
  $('inventoryOverlay').addEventListener('click',e=>{if(e.target===$('inventoryOverlay'))$('inventoryOverlay').classList.remove('open');});
  canvas.addEventListener('click',onCanvasClick);
@@ -571,14 +638,13 @@ function animate(now){
 }
 function startGame(){
  if(!ctx){$('bootError').classList.add('visible');$('bootErrorText').textContent='Este navegador não conseguiu criar um canvas 2D.';return;}
- loadGame();resize();resetPartyWorld();updateHud();updateComposition();updatePowerNote();renderPartyUI();wireUI();
+ loadGame();resize();resetPartyWorld();updateHud();updateComposition();updatePowerNote();renderPartyUI();updateMissionCopy();renderTavern();wireUI();
  if(offlineEarned>0){$('offlineValue').textContent='+'+fmt(offlineEarned)+' ouro · '+offlineGearEarned+' itens';showToast('Você voltou à fronteira','+'+fmt(offlineEarned)+' ouro · '+fmt(offlineXpEarned)+' XP por herói · '+offlineGearEarned+' item(ns).');}
  else $('offlineValue').textContent='Ativo';
  if(offlineEarned>0)saveGame();
  requestAnimationFrame(animate);
  setTimeout(()=>{
   if(!running&&!enemies.length)spawnWave();
-  if(!tutorialSeen){showToast('A aventura começou','A equipe luta sozinha. O primeiro inimigo deixa um equipamento.');tutorialSeen=true;saveGame();}
+  if(!tutorialSeen){showToast('Sua jornada começou','Bram está sozinho. Derrote a primeira criatura e recolha as cartas que ela deixar.');tutorialSeen=true;saveGame();}
  },450);
 }
-startGame();
