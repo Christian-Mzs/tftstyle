@@ -24,3 +24,21 @@ jobs:
         run: npm run build
       - name: Verify generated entry page
         run: test -s dist/index.html
+  windows-launcher-check:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Parse the PowerShell launcher
+        shell: powershell
+        run: |
+          $parseErrors = $null
+          $tokens = $null
+          $scriptPath = Join-Path $PWD 'scripts\start-game.ps1'
+          [System.Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$tokens, [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host 'PowerShell launcher syntax is valid.'
+
