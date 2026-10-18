@@ -48,7 +48,7 @@ function compInfo(){
   const values=Object.values(count).sort((a,b)=>b-a);let bonus=0,label='Sem bônus',short='';
   if(values[0]===5){bonus=20;label='5 do mesmo tipo';short='formação pura';}
   else if(values[0]===4){bonus=tacticalCard?20:15;label=tacticalCard?'4 + 1 · Carta Tática':'4 do mesmo tipo';short=tacticalCard?'carta equipada':'formação especializada';}
-  else if(values[0]===3){bonus=values[1]===2?10:5;label=values[1]===2?'3 + 2 · formação mista':'3 do mesmo tipo';short=values[1]===2?'formação mista':'especialização parcial';}
+  else if(values[0]===3){bonus=values[1]===2?10:5;label=values[1]===2?'3 + 2':'3 do mesmo tipo';short=values[1]===2?'formação mista':'especialização parcial';}
   return {count,bonus,label,short};
 }
 function saveGame(){
@@ -271,6 +271,11 @@ function resetPartyWorld(){
   renderPartyUI();updateComposition();updatePowerNote();
 }
 function spawnWave(){
+  heroes.forEach(h=>{
+    h.alive=true;h.deadTimer=0;h.root.visible=true;h.root.scale.setScalar(1);
+    h.root.position.copy(h.home);h.root.rotation.set(0,Math.PI/2,0);h.visual.position.y=0;
+    h.hp=Math.max(h.hp,h.maxHp*.6);setHealthBar(h);
+  });
   enemies.forEach(e=>{scene.remove(e.root);});
   enemies=[];
   projectiles.forEach(p=>{scene.remove(p.mesh);if(p.light)scene.remove(p.light);});projectiles=[];
@@ -589,6 +594,7 @@ function wireUI(){
   $('cameraButton').addEventListener('click',()=>{camera.position.set(0,14.5,19.5);controls.target.set(0,.25,0);controls.update();});
 }
 loadGame();
+if(offlineEarned>0)saveGame();
 try{
   initScene();wireUI();
   if(offlineEarned>0){$('offlineValue').textContent='+'+fmt(offlineEarned);showToast('Você voltou à fronteira','Enquanto esteve fora, seus heróis acumularam '+fmt(offlineEarned)+' de ouro.');}
