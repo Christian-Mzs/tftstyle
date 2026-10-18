@@ -157,7 +157,12 @@ try {
 } finally {
     if ($ServerProcess -and -not $ServerProcess.HasExited) {
         try {
-            Stop-Process -Id $ServerProcess.Id -Force -ErrorAction SilentlyContinue
+            $TaskKill = Join-Path $env:WINDIR 'System32\taskkill.exe'
+            if (Test-Path -LiteralPath $TaskKill) {
+                & $TaskKill /PID $ServerProcess.Id /T /F | Out-Null
+            } else {
+                Stop-Process -Id $ServerProcess.Id -Force -ErrorAction SilentlyContinue
+            }
             Start-Sleep -Milliseconds 500
         } catch {}
     }
