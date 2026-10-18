@@ -1,16 +1,18 @@
-# Frontier Heroes — protótipo 3D
+# Frontier Heroes — protótipo 2D idle RPG
 
-Protótipo de navegador de um RPG de grupo com combate automático, loot, conjuntos, níveis e progressão offline. A cena é renderizada em 3D com **Three.js**; **Vite** cuida do servidor de desenvolvimento e da compilação.
+RPG de grupo com **pixel art 2D**, cinco heróis, combate automático, loot, equipamentos, conjuntos e progressão offline. A cena é desenhada num Canvas 2D leve; o Vite serve o jogo localmente e faz a compilação. A renderização não utiliza WebGL nem Three.js.
 
 ## Iniciar no Windows
 
-1. Instale o [Node.js LTS](https://nodejs.org/) se ainda não estiver instalado.
-2. Baixe/clone este repositório no computador.
+1. Instale [Node.js LTS](https://nodejs.org/) se ainda não estiver instalado.
+2. Baixe o ZIP mais recente deste repositório por **Code → Download ZIP** e extraia a pasta.
 3. Dê dois cliques em `start-game.bat`.
 
-Na primeira execução, o lançador instala as dependências automaticamente. Depois ele inicia o Vite numa porta local e abre o jogo numa janela independente do Edge ou Chrome. **Feche a janela do jogo para o lançador encerrar o servidor**. Não feche a janela preta do lançador enquanto estiver jogando.
+Na primeira execução, o lançador instala as dependências automaticamente, inicia o servidor local e abre uma janela própria de cerca de 1000 × 620 pixels no Edge ou Chrome. **Feche a janela do jogo para o servidor local ser encerrado automaticamente.** A janela preta do lançador deve permanecer aberta durante o jogo.
 
-O lançador usa um perfil persistente separado do navegador normal, para poder identificar a janela do jogo e manter o progresso salvo entre sessões. Ao fechar a janela, o servidor é encerrado; o perfil de jogo permanece em `%LOCALAPPDATA%\FrontierHeroes\BrowserProfile`. Se a porta 4173 já estiver ocupada, ele avisa sem encerrar o processo de outra aplicação.
+O lançador usa um perfil persistente separado do navegador normal, para guardar o progresso entre sessões em `%LOCALAPPDATA%\FrontierHeroes\BrowserProfile`. O perfil não é apagado ao sair. Se a porta local 4173 estiver ocupada, o lançador avisa e não encerra o processo de outra aplicação.
+
+> Se você já tinha baixado uma versão anterior, extraia um ZIP atualizado para uma nova pasta antes de testar: a cópia antiga no computador não recebe automaticamente as correções do GitHub.
 
 ## Executar manualmente
 
@@ -21,42 +23,42 @@ npm install
 npm run dev
 ```
 
-Abra o endereço local que o Vite imprimir (normalmente `http://localhost:5173`). Para testar o build de produção:
+Abra o endereço local que o Vite imprimir (normalmente `http://localhost:5173`). Para testar a compilação de produção:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-## Jogabilidade atual
+## O que já está no protótipo
 
-- Clareira 3D com ruínas, runas, árvores low-poly, iluminação, neblina e partículas ambientais.
-- Cinco heróis visíveis no cenário; inimigos com silhuetas próprias, movimentação e combate automático.
-- Projéteis, números de dano, partículas de impacto, barras de vida e cristais de loot clicáveis.
-- Elenco de 15 heróis fictícios; cada afinidade de tropa inclui atacantes, defensores, suportes e especialistas.
-- Composição de cinco heróis e o ciclo: Tanques vencem Mísseis, Mísseis vencem Aeronaves, Aeronaves vencem Tanques.
-- Bônus progressivo de composição: 3 do mesmo tipo = +5%; 3+2 = +10%; 4+1 = +15%; 5 do mesmo tipo = +20%.
-- XP e níveis persistentes para cada herói; subir de nível melhora vida e dano.
-- Drops equipáveis com atributos e espaços de arma, armadura e relíquia; bônus de conjuntos para Vigia do Véu, Caçador da Bruma e Fornalha Antiga.
-- Carta Tática como relíquia rara, permitindo manter +20% com quatro heróis de um tipo e um de outro.
-- Salvamento local e renda/XP/loot offline generosos, com limite de até 12 horas; ao retornar, o jogo concede um resumo de recompensas e equipamentos acumulados.
-- O combate começa automaticamente; pause para trocar heróis ou equipar itens. A primeira morte inimiga oferece um drop de equipamento garantido.
+- Campo de batalha lateral 2D com visual pixel-art, fundo em camadas, floresta, ruínas, cenário e partículas.
+- Cinco heróis com silhuetas, armas, animação de caminhada/ataque e barras de vida.
+- Monstros que se movem, atacam e recebem dano automaticamente; projéteis, efeitos de impacto e números de dano.
+- Cristais de ouro/equipamento clicáveis, com recolhimento automático depois de alguns segundos.
+- Elenco de 15 heróis fictícios; Tanques, Aeronaves e Mísseis têm funções variadas.
+- Bônus progressivos: 3 de um tipo = +5%; 3+2 = +10%; 4+1 = +15%; 5 de um tipo = +20%.
+- Ciclo de confronto: Tanques vencem Mísseis, Mísseis vencem Aeronaves, Aeronaves vencem Tanques.
+- XP e níveis permanentes por herói; progressão de atributos por nível.
+- Arma, armadura e relíquia; afixos, raridades e bônus de conjuntos.
+- Carta Tática como relíquia, mantendo +20% numa composição 4+1.
+- Salvamento local e progresso offline: ouro, XP e equipamentos com teto de 12 horas.
+- Janela independente e compacta, pensada para continuar aberta enquanto você usa outros programas.
 
 ## Controles
 
-- **Começar/Pausar:** inicia ou pausa a batalha automática.
-- **Elenco:** pause antes de trocar um dos cinco heróis.
-- **Equipamentos:** pause, escolha o herói e equipe itens encontrados.
-- **Próxima horda:** avança quando a área estiver limpa.
-- **Câmera:** arraste para girar e use a roda do mouse para aproximar.
-- **Cristais:** clique nos cristais brilhantes do cenário para recolher ouro, equipamento ou relíquias.
+- **Pausar/retomar:** controla o combate automático.
+- **Elenco:** pause e escolha qual herói substituir.
+- **Itens:** pause, selecione o herói e equipe ou compare itens.
+- **Próxima horda:** fica disponível quando a equipe derrota a onda atual.
+- **Clique nos cristais:** recolhe ouro, itens e relíquias.
 
-O progresso fica no armazenamento local deste navegador. Não há conta, sincronização entre dispositivos ou servidor remoto. A versão inicial usa modelos geométricos low-poly procedurais; ainda não são os modelos animados finais.
+Os dados ficam localmente neste navegador. Não há conta, sincronização na nuvem ou servidor remoto. Os personagens são sprites pixelados gerados por código para validar a mecânica; spritesheets de arte final, mais classes/habilidades e animações refinadas ainda estão no roadmap.
 
-## Documentos de design
+## Progressão e UX
 
-- [GAME-PROGRESSION.md](./GAME-PROGRESSION.md) — onboarding dos primeiros 15 minutos, progressão longa, loot, sets, modo offline e hierarquia do HUD.
+Veja [GAME-PROGRESSION.md](./GAME-PROGRESSION.md) para o plano dos primeiros 15 minutos, ritmo dos drops, níveis, conjuntos, dificuldade, modo offline e organização do HUD.
 
-## Build automatizado
+## Automação
 
-O workflow em `.github/workflows/build.yml` instala dependências e executa `npm run build` a cada alteração na branch `main`. Ele valida o projeto, mas não publica um site de jogo.
+O workflow em `.github/workflows/build.yml` é **manual**, não é disparado por cada commit. Quando for necessário validar, ele executa o build e verifica a sintaxe do lançador Windows. Os commits, sozinhos, não iniciam builds.
