@@ -36,7 +36,7 @@ const initialParty = ['bram','helga','orwen','lyra','aerin'];
 const STORE_KEY = 'frontier-heroes-save-v1';
 let gold = 1250, wave = 1, selectedSlot = 0, partyIds = [...initialParty], items = [], tacticalCard = false;
 let equipment = {}, heroProgress = {}, nextItemId = 1, firstGearCollected = false, tutorialSeen = false;
-let running = false, cleared = false, lastToast = 0, elapsed = 0, offlineEarned = 0, offlineXpEarned = 0;
+let running = false, cleared = false, lastToast = 0, elapsed = 0, offlineEarned = 0, offlineXpEarned = 0, offlineGearEarned = 0;
 let heroes = [], enemies = [], projectiles = [], effects = [], loot = [], allUnits = [];
 let clock = new THREE.Clock();
 const unitPositions = [[-4.4,-1.55],[-3.4,0.2],[-5.6,0.05],[-4.5,1.65],[-6.0,-2.05]];
@@ -138,6 +138,9 @@ function loadGame(){
       gold+=offlineEarned;
       offlineXpEarned=Math.floor(mins*1.35);
       partyIds.forEach(id=>grantHeroXp(id,offlineXpEarned));
+      offlineGearEarned=Math.min(12,Math.floor(mins/35));
+      for(let i=0;i<offlineGearEarned;i++)items.push(makeItem());
+      if(items.length>60)items=items.slice(-60);
     }
   }catch(e){}
 }
@@ -749,7 +752,7 @@ loadGame();
 if(offlineEarned>0)saveGame();
 try{
   initScene();wireUI();
-  if(offlineEarned>0){$('offlineValue').textContent='+'+fmt(offlineEarned)+' / +'+fmt(offlineXpEarned)+' XP';showToast('Você voltou à fronteira','Seus heróis acumularam '+fmt(offlineEarned)+' ouro e '+fmt(offlineXpEarned)+' XP por herói.');}
+  if(offlineEarned>0){$('offlineValue').textContent='+'+fmt(offlineEarned)+' ouro · '+offlineGearEarned+' itens';showToast('Você voltou à fronteira','Seus heróis acumularam '+fmt(offlineEarned)+' ouro, '+fmt(offlineXpEarned)+' XP por herói e '+offlineGearEarned+' equipamento(s).');}
   else $('offlineValue').textContent='ativo';
   updateHud();renderPartyUI();updateComposition();updatePowerNote();animate();
   setTimeout(()=>{
