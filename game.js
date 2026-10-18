@@ -274,7 +274,7 @@ function resetPartyWorld(){
 }
 function spawnWave(retry=false){
  heroes.forEach((h,i)=>{
-  const ratio=retry?.7:Math.max(.62,h.hp/h.maxHp);
+  const ratio=retry ? 0.7 : Math.max(0.62,h.hp/h.maxHp);
   h.data=heroDataAtLevel(partyIds[i]);h.maxHp=h.data.hp;h.hp=h.maxHp*ratio;h.alive=true;h.deadTimer=0;
   h.x=heroHomeX(i);h.y=laneY(i);h.homeX=h.x;h.homeY=h.y;h.cooldown=rand(.2,.8);h.attackAnim=0;
  });
