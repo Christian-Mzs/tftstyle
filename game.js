@@ -304,6 +304,7 @@ function resetPartyWorld(){
  renderPartyUI();updateComposition();updatePowerNote();
 }
 function spawnWave(retry=false){
+ if(cleared&&wave===2&&ownedHeroIds.length<2){showToast('Recrute seu primeiro aliado','Reúna 5 cartas na Taverna antes de avançar para a próxima horda.');if(tavernUnlocked){renderTavern();$('tavernOverlay').classList.add('open');}return;}
  autoFillParty();if(heroes.length!==partyIds.length)resetPartyWorld();
  heroes.forEach((h,i)=>{
   const ratio=retry ? 0.7 : Math.max(0.62,h.hp/h.maxHp);
