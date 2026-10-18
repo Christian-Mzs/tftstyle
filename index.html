@@ -20,7 +20,7 @@
     <div class="res"><label>Expedição</label><strong id="waveValue">01</strong></div>
     <div class="res"><label>Progresso offline</label><strong id="offlineValue">—</strong></div>
   </div>
-  <div class="topActions"><button id="rosterButton">☷ Elenco</button><button class="iconBtn" id="cameraButton" title="Recentrar câmera">⌖</button></div>
+  <div class="topActions"><button id="rosterButton">☷ Elenco</button><button id="inventoryButton">✦ Equipamentos</button><button class="iconBtn" id="cameraButton" title="Recentrar câmera">⌖</button></div>
 </header>
 <section class="mission">
   <div class="eyebrow">FRONTEIRA · REGIÃO 01</div>
@@ -45,6 +45,18 @@
   <section class="rosterWindow">
     <header class="rosterHead"><div><div class="eyebrow">HERÓIS RECRUTADOS</div><h2>Montar expedição</h2><p id="slotPrompt">Escolha qual espaço do grupo deseja substituir e selecione um herói.</p></div><button id="closeRoster">✕ Fechar</button></header>
     <div class="rosterGrid" id="rosterGrid"></div>
+  </section>
+</div>
+<div id="inventoryOverlay" class="rosterOverlay">
+  <section class="rosterWindow inventoryWindow">
+    <header class="rosterHead"><div><div class="eyebrow">INVENTÁRIO · EQUIPAMENTO</div><h2>Preparar herói</h2><p>Compare o efeito dos itens, equipe peças e monte conjuntos.</p></div><button id="closeInventory">✕ Fechar</button></header>
+    <div class="inventoryTargetTitle" id="inventoryTargetTitle">Herói selecionado</div>
+    <div id="inventoryTargets" class="inventoryTargets"></div>
+    <div id="equippedGrid" class="equippedGrid"></div>
+    <div id="inventorySetBonus" class="inventorySetBonus"></div>
+    <div class="inventorySectionTitle">Bolsa · itens encontrados</div>
+    <div id="inventoryGrid" class="inventoryGrid"></div>
+    <div id="inventoryEmpty" class="inventoryEmpty" hidden>Seus heróis ainda não encontraram equipamentos. Derrote inimigos e recolha os cristais que aparecem no cenário.</div>
   </section>
 </div>
 <div id="bootError" class="bootError"><div><div class="eyebrow">FRONTIER HEROES</div><h2>Não foi possível iniciar o mundo 3D</h2><p id="bootErrorText">Verifique a conexão com a internet e se o navegador oferece suporte a WebGL 2. A cena usa Three.js carregado por CDN.</p><button onclick="location.reload()">Tentar novamente</button></div></div>
