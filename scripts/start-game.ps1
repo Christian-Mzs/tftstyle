@@ -24,6 +24,20 @@ function Find-GameBrowser {
     return ($Candidates | Select-Object -First 1)
 }
 
+function Remove-LauncherLogs {
+    foreach ($LogPath in @($StdoutLog, $StderrLog)) {
+        if ([string]::IsNullOrWhiteSpace($LogPath)) { continue }
+        try {
+            if (Test-Path -LiteralPath $LogPath -PathType Leaf) {
+                Remove-Item -LiteralPath $LogPath -Force -ErrorAction Stop
+            }
+        } catch {
+            # Cleanup is best effort: never report a game failure only because a log
+            # was already absent or Windows temporarily denied deleting it.
+        }
+    }
+}
+
 function Get-ProfileBrowserProcesses {
     param([string]$ProfilePath, [string]$ProcessName)
     try {
@@ -88,7 +102,7 @@ try {
         throw "A porta $Port ja esta em uso. Feche a outra instancia de Frontier Heroes e tente novamente; nenhum processo existente foi encerrado."
     }
 
-    Remove-Item -LiteralPath $StdoutLog, $StderrLog -Force -ErrorAction SilentlyContinue
+    Remove-LauncherLogs
     $ViteArguments = '"' + $ViteCli + '" --host 127.0.0.1 --port ' + $Port + ' --strictPort'
     $ServerProcess = Start-Process -FilePath $NodePath -ArgumentList $ViteArguments -WorkingDirectory $ProjectRoot -PassThru -WindowStyle Hidden -RedirectStandardOutput $StdoutLog -RedirectStandardError $StderrLog
 
@@ -168,7 +182,7 @@ try {
         } catch {}
     }
     if (-not $Failed) {
-        Remove-Item -LiteralPath $StdoutLog, $StderrLog -Force -ErrorAction SilentlyContinue
+        Remove-LauncherLogs
     }
 }
 if ($Failed) { exit 1 }
