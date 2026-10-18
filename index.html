@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#101a22">
 <title>Frontier Heroes — Idle RPG</title>
-<meta name="description" content="RPG idle 2D de grupo com pixel art, combate automático, loot, sets e progressão offline.">
+<meta name="description" content="RPG idle 2D de heróis, recrutamento progressivo, cartas, raridades SR/SSR/UR e combate automático.">
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -14,20 +14,22 @@
   <header class="topbar">
     <div class="brandBlock"><div class="sigil">✦</div><div class="brand">FRONTIER HEROES<small>AN IDLE PARTY RPG</small></div></div>
     <div class="resources">
-      <div class="res gold"><label>Ouro</label><strong id="goldValue">1.250</strong></div>
-      <div class="res"><label>Expedição</label><strong id="waveValue">01</strong></div>
+      <div class="res gold"><label>Ouro</label><strong id="goldValue">0</strong></div>
+      <div class="res"><label>Horda</label><strong id="waveValue">01</strong></div>
+      <div class="res recruitResource"><label>Cartas</label><strong id="recruitCardsValue">0</strong></div>
       <div class="res"><label>Volta offline</label><strong id="offlineValue">Ativo</strong></div>
     </div>
     <div class="topActions">
-      <button id="rosterButton">☷ Elenco</button>
-      <button id="inventoryButton">✦ Itens <span id="bagCount">0</span></button>
+      <button id="tavernButton" hidden>✦ Taverna <span id="recruitCardBadge">0</span></button>
+      <button id="rosterButton" hidden>☷ Elenco</button>
+      <button id="inventoryButton" hidden>✦ Itens <span id="bagCount">0</span></button>
     </div>
   </header>
   <section class="mission">
-    <div class="eyebrow">ATO I · FRONTEIRA VELADA</div>
-    <h1>Floresta dos Ecos</h1>
-    <p>Seus cinco heróis caçam criaturas automaticamente. A equipe continua evoluindo enquanto você está longe.</p>
-    <div class="wavePill"><span class="dot"></span><span id="waveLabel">HORDA 01 · EM COMBATE</span></div>
+    <div class="eyebrow" id="missionEyebrow">CAPÍTULO 01 · A ÚLTIMA CHAMA</div>
+    <h1 id="missionTitle">Bram, o último guardião</h1>
+    <p id="missionCopy">Você começa sozinho. Derrote a primeira criatura para encontrar as cartas que vão abrir o caminho até a Taverna.</p>
+    <div class="wavePill"><span class="dot"></span><span id="waveLabel">HORDA 01 · PRIMEIRO CONTATO</span></div>
   </section>
   <section class="compositionBadge">
     <div class="eyebrow">SINERGIA DE TROPA</div>
@@ -36,10 +38,10 @@
     <div class="compChips" id="typeChips"></div>
   </section>
   <div class="zoneCaption"><span class="zoneMark"></span><span id="zoneHint">CRIATURAS DA FRONTEIRA</span><span class="zoneDivider"></span><span>COMBATE AUTOMÁTICO</span></div>
-  <div class="bottomHint">SEUS HERÓIS LUTAM SOZINHOS · RECOLHA O LOOT OU DEIXE QUE ELE SEJA COLETADO AUTOMATICAMENTE</div>
+  <div class="bottomHint" id="objectiveText">OBJETIVO · DERROTE A PRIMEIRA CRIATURA E RECOLHA AS CARTAS</div>
   <section class="bottomArea">
     <div class="partyPanel">
-      <div class="panelLabel"><span>SUA EQUIPE</span><span id="teamCount">5 / 5 · ESCOLHA UM HERÓI PARA TROCAR</span></div>
+      <div class="panelLabel"><span>SUA EXPEDIÇÃO</span><span id="teamCount">1 / 1 vaga aberta</span></div>
       <div class="party" id="partyCards"></div>
     </div>
     <div class="combatPanel">
@@ -52,8 +54,27 @@
 <div id="centerToast" class="centerToast"><b id="toastTitle">Primeiro saque!</b><span id="toastText">Um item caiu no campo.</span></div>
 <div id="rosterOverlay" class="modalOverlay">
   <section class="modalWindow">
-    <header class="modalHead"><div><div class="eyebrow">HERÓIS RECRUTADOS</div><h2>Montar expedição</h2><p id="slotPrompt">Selecione um herói para substituir o espaço escolhido.</p></div><button id="closeRoster">✕</button></header>
+    <header class="modalHead"><div><div class="eyebrow">HERÓIS RECRUTADOS</div><h2>Montar expedição</h2><p id="slotPrompt">Sua coleção começa com um único herói. Recrute aliados na Taverna.</p></div><button id="closeRoster">✕</button></header>
     <div class="rosterGrid" id="rosterGrid"></div>
+  </section>
+</div>
+<div id="tavernOverlay" class="modalOverlay">
+  <section class="modalWindow tavernWindow">
+    <header class="modalHead">
+      <div><div class="eyebrow">RECRUTAMENTO · COLEÇÃO DE HERÓIS</div><h2>A Taverna da Fronteira</h2><p>Troque 5 cartas de recrutamento por um herói aleatório. Todos os heróis podem ser obtidos jogando.</p></div>
+      <button id="closeTavern" aria-label="Fechar Taverna">✕</button>
+    </header>
+    <div class="tavernSummary">
+      <div class="tavernCardBalance"><span>SUAS CARTAS</span><strong id="tavernCardsValue">0 / 5</strong></div>
+      <div class="rarityRates"><span class="tierSR">SR <b>78%</b></span><span class="tierSSR">SSR <b>20%</b></span><span class="tierUR">UR <b>2%</b></span></div>
+      <p id="pityText">Garantia SSR em 10 recrutamentos · garantia UR em 30 recrutamentos.</p>
+    </div>
+    <div id="recruitReveal" class="recruitReveal">
+      <div class="emptyReveal"><span>✦</span><strong>Uma aliança pode mudar a expedição</strong><p>Seu próximo herói espera por você. Reúna cartas derrotando criaturas e completando hordas.</p></div>
+    </div>
+    <div class="recruitFooter"><button class="primary" id="recruitButton" disabled>Recrutar · 5 cartas</button><span id="recruitStatus">Faltam 5 cartas para um recrutamento.</span></div>
+    <div class="collectionHeading"><div><div class="eyebrow">BESTIÁRIO DE HERÓIS</div><h3>Galeria de recrutamento</h3></div><span id="collectionCount">1 / 45 heróis</span></div>
+    <div id="tavernCollection" class="tavernCollection"></div>
   </section>
 </div>
 <div id="inventoryOverlay" class="modalOverlay">
