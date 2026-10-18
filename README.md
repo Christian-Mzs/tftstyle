@@ -1,6 +1,6 @@
 # Frontier Heroes — protótipo 2D idle RPG
 
-RPG de grupo com **pixel art 2D**, cinco heróis, combate automático, loot, equipamentos, conjuntos e progressão offline. A cena é desenhada num Canvas 2D leve; o Vite serve o jogo localmente e faz a compilação. A renderização não utiliza WebGL nem Three.js.
+RPG idle 2D com pixel art procedural, combate automático e progressão baseada em recrutamento de heróis. A campanha começa com **um único SR**, cartas para recrutar na Taverna e vagas que são liberadas ao concluir hordas. A coleção inicial tem **45 heróis: 15 SR, 15 SSR e 15 UR**, divididos entre Tanques, Aeronaves e Mísseis. O jogo roda em Canvas 2D, sem WebGL ou Three.js.
 
 ## Iniciar no Windows
 
@@ -12,7 +12,7 @@ Na primeira execução, o lançador instala as dependências automaticamente, in
 
 O lançador usa um perfil persistente separado do navegador normal, para guardar o progresso entre sessões em `%LOCALAPPDATA%\FrontierHeroes\BrowserProfile`. O perfil não é apagado ao sair. Se a porta local 4173 estiver ocupada, o lançador avisa e não encerra o processo de outra aplicação.
 
-> Se você já tinha baixado uma versão anterior, extraia um ZIP atualizado para uma nova pasta antes de testar: a cópia antiga no computador não recebe automaticamente as correções do GitHub.
+> Esta versão inaugura uma nova campanha e usa uma chave de salvamento separada para garantir a experiência inicial correta. O salvamento antigo do protótipo não é carregado nem apagado por esta mudança.
 
 ## Executar manualmente
 
@@ -30,34 +30,34 @@ npm run build
 npm run preview
 ```
 
-## O que já está no protótipo
+## Progressão de jogo implementada
 
-- Campo de batalha lateral 2D com visual pixel-art, fundo em camadas, floresta, ruínas, cenário e partículas.
-- Cinco heróis com silhuetas, armas, animação de caminhada/ataque e barras de vida.
-- Monstros que se movem, atacam e recebem dano automaticamente; projéteis, efeitos de impacto e números de dano.
-- Cristais de ouro/equipamento clicáveis, com recolhimento automático depois de alguns segundos.
-- Elenco de 15 heróis fictícios; Tanques, Aeronaves e Mísseis têm funções variadas.
-- Bônus progressivos: 3 de um tipo = +5%; 3+2 = +10%; 4+1 = +15%; 5 de um tipo = +20%.
-- Ciclo de confronto: Tanques vencem Mísseis, Mísseis vencem Aeronaves, Aeronaves vencem Tanques.
-- XP e níveis permanentes por herói; progressão de atributos por nível.
-- Arma, armadura e relíquia; afixos, raridades e bônus de conjuntos.
-- Carta Tática como relíquia, mantendo +20% numa composição 4+1.
-- Salvamento local e progresso offline: ouro, XP e equipamentos com teto de 12 horas.
-- Janela independente e compacta, pensada para continuar aberta enquanto você usa outros programas.
+- **Início solo:** Bram é o único herói ativo; não há time completo nem inventário inicial.
+- **Primeira horda:** um inimigo, um drop garantido de 3 cartas e 2 cartas de recompensa ao completar a missão.
+- **Taverna:** 5 cartas recrutam um herói aleatório; o primeiro aliado entra automaticamente na segunda vaga.
+- **45 heróis de coleção:** 15 SR, 15 SSR e 15 UR, com cinco de cada raridade para cada tipo de tropa.
+- **Recrutamento transparente:** SR 78%, SSR 20%, UR 2%; proteção contra azar garante SSR até o 10º recrutamento sem SSR e UR até o 30º sem UR. Todos os heróis podem ser obtidos jogando.
+- **Desbloqueios graduais:** segunda vaga após a primeira horda; terceira após a terceira; quarta após a sexta; quinta após a décima.
+- **Equipamento mais tarde:** equipamentos e sistema de itens são desbloqueados ao concluir a terceira horda; armas, armaduras, relíquias e conjuntos continuam disponíveis.
+- **Combate leve:** mundo lateral em Canvas 2D, criaturas, animações, dano, partículas e saque no cenário.
+- **Triângulo tático:** Tanques vencem Mísseis, Mísseis vencem Aeronaves e Aeronaves vencem Tanques.
+- **Salvamento local:** coleção, formação, cartas, equipamentos e drops no campo são salvos localmente. A progressão offline é limitada a 12 horas.
+- **Arte provisória:** sprites e variações de heróis são gerados por código para validar progressão e combate; arte final, habilidades exclusivas e integração nativa à barra de tarefas ainda são trabalho futuro.
 
 ## Controles
 
+- **Taverna:** abra a coleção e gaste 5 cartas de recrutamento.
+- **Elenco:** escolha heróis recrutados para preencher ou trocar posições; pause o combate antes de reorganizar a equipe.
+- **Itens:** após desbloquear equipamentos, pause para comparar e equipar itens.
 - **Pausar/retomar:** controla o combate automático.
-- **Elenco:** pause e escolha qual herói substituir.
-- **Itens:** pause, selecione o herói e equipe ou compare itens.
-- **Próxima horda:** fica disponível quando a equipe derrota a onda atual.
-- **Clique nos cristais:** recolhe ouro, itens e relíquias.
+- **Próxima horda:** fica liberada ao concluir a batalha; na primeira horda, é necessário recrutar o primeiro aliado antes de avançar.
+- **Clique nos saques:** recolhe cartas, ouro e equipamento; saques esquecidos são recolhidos automaticamente depois de alguns segundos.
 
-Os dados ficam localmente neste navegador. Não há conta, sincronização na nuvem ou servidor remoto. Os personagens são sprites pixelados gerados por código para validar a mecânica; spritesheets de arte final, mais classes/habilidades e animações refinadas ainda estão no roadmap.
+Os dados ficam localmente no perfil do navegador dedicado usado pelo lançador. Não há conta, sincronização na nuvem ou servidor remoto.
 
 ## Progressão e UX
 
-Veja [GAME-PROGRESSION.md](./GAME-PROGRESSION.md) para o plano dos primeiros 15 minutos, ritmo dos drops, níveis, conjuntos, dificuldade, modo offline e organização do HUD.
+Veja [GAME-PROGRESSION.md](./GAME-PROGRESSION.md) para o onboarding, as probabilidades de recrutamento, a ordem dos desbloqueios e os critérios para testar o início da campanha.
 
 ## Automação
 
