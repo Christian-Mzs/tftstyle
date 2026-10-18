@@ -3,15 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Three.js auto-RPG prototype with party combat, troop affinities, loot and offline progression.",
+  "description": "Lightweight 2D pixel-art auto-RPG prototype with team combat, loot and offline progression.",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0"
   },
-  "dependencies": {
-    "three": "^0.186.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "vite": "^8.3.4"
   }
