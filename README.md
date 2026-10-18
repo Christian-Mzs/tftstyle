@@ -39,7 +39,7 @@ npm run preview
 - XP e níveis persistentes para cada herói; subir de nível melhora vida e dano.
 - Drops equipáveis com atributos e espaços de arma, armadura e relíquia; bônus de conjuntos para Vigia do Véu, Caçador da Bruma e Fornalha Antiga.
 - Carta Tática como relíquia rara, permitindo manter +20% com quatro heróis de um tipo e um de outro.
-- Salvamento local e renda/XP offline generosos, com limite de até 12 horas.
+- Salvamento local e renda/XP/loot offline generosos, com limite de até 12 horas; ao retornar, o jogo concede um resumo de recompensas e equipamentos acumulados.
 - O combate começa automaticamente; pause para trocar heróis ou equipar itens. A primeira morte inimiga oferece um drop de equipamento garantido.
 
 ## Controles
