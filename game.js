@@ -210,7 +210,7 @@ function drawEnemy(u,t){
  ctx.save();ctx.globalAlpha=u.alive?1:Math.max(0,1-u.deadTimer*1.7);
  ctx.fillStyle='#10161988';ctx.beginPath();ctx.ellipse(u.x,u.y+2,p*7.4,p*1.7,0,0,Math.PI*2);ctx.fill();
  ctx.translate(Math.round(u.x),Math.round(u.y));if(dir<0)ctx.scale(-1,1);
- const px=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x*p),Math.round(y*p),Math.max(1,Math.round(w*p)),Math.max(1,Math.round(h*p));};
+ const px=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x*p),Math.round(y*p),Math.max(1,Math.round(w*p)),Math.max(1,Math.round(h*p)));};
  const dark='#252c30',c=u.data.color,highlight=u.data.troop==='air'?'#d8b17a':u.data.troop==='missile'?'#d0a9e6':'#99b28a';
  const walk=u.moving?Math.sin(t*10+u.animOffset)*.9:0;
  px(-5,-7+walk,4,6,dark);px(2,-7-walk,4,6,dark);px(-6,-2+walk,5,2,'#392e2d');px(1,-2-walk,5,2,'#392e2d');
